@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+:root {
+  --primary: #0ea47a;
+  --secondary: #0f766e;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Bubble Effects */
+.bubble {
+  position: absolute;
+  background: rgba(14, 164, 122, 0.15);
+  border-radius: 50%;
+  animation: bubble-rise 8s infinite ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes bubble-rise {
+  0% { transform: translateY(0) scale(1); opacity: 0.6; }
+  100% { transform: translateY(-400px) scale(0.6); opacity: 0; }
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  border: 3px solid #e5e7eb;
+  border-top: 3px solid #0ea47a;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Scroll Reveal */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.scroll-reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Smooth Animations */
+.glass {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+}
+
+/* Doctor Animation */
+.doctor-float {
+  animation: doctor-float 3s ease-in-out infinite;
+}
+
+@keyframes doctor-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+
+/* Product Cards Hover */
+.product-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.product-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.15);
+}
+
+/* Payment Method Buttons */
+.payment-btn {
+  transition: all 0.2s ease;
+}
+
+.payment-btn.active {
+  background-color: #0ea47a;
+  color: white;
+  border-color: #0ea47a;
+}

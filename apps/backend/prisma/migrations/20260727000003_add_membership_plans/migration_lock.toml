@@ -1,0 +1,4 @@
+# Please don't edit this file manually
+# It should be added in a version control system (like Git)
+
+provider = "mysql"

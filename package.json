@@ -1,0 +1,35 @@
+{
+  "private": true,
+  "workspaces": [
+    "apps/frontend",
+    "apps/backend"
+  ],
+  "scripts": {
+    "dev": "npm run dev:frontend",
+    "dev:frontend": "npm -w apps/frontend run dev",
+    "dev:backend": "npm -w apps/backend run dev",
+    "dev:all": "npm run dev:backend & npm run dev:frontend",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "npm -w apps/frontend run build",
+    "build:backend": "npm -w apps/backend run build",
+    "lint": "npm -w apps/frontend run lint && npm -w apps/backend run lint",
+    "lint:frontend": "npm -w apps/frontend run lint",
+    "lint:backend": "npm -w apps/backend run lint",
+    "verify": "npm run lint && npm run build",
+    "test": "npm -w apps/frontend test && npm -w apps/backend test",
+    "test:frontend": "npm -w apps/frontend test",
+    "test:backend": "npm -w apps/backend test",
+    "test:e2e": "npm -w apps/frontend run test:e2e",
+    "test:e2e:headed": "npm -w apps/frontend run test:e2e:headed",
+    "test:e2e:ui": "npm -w apps/frontend run test:e2e:ui",
+    "test:all": "npm -w apps/frontend test -- --run && npm -w apps/backend test -- --run && npm -w apps/frontend run test:e2e",
+    "setup": "npm install && cd apps/backend && npx prisma generate",
+    "migrate": "cd apps/backend && npx prisma migrate dev",
+    "seed:admin": "cd apps/backend && npm run seed:admin",
+    "seed:products": "cd apps/backend && npm run seed:products",
+    "db:reset": "cd apps/backend && npx prisma migrate reset"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

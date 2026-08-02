@@ -1,0 +1,56 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(claude *)",
+      "Bash(git *)",
+      "Bash(npm run *)",
+      "Bash(npm -w *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(npx prisma *)",
+      "Bash(npx tsc *)",
+      "Bash(npx tsx *)",
+      "Bash(npx vitest *)",
+      "Bash(npx playwright *)",
+      "Bash(npx vite *)",
+      "Bash(vercel *)",
+      "Bash(curl *)",
+      "Bash(curl http://localhost:*)",
+      "Bash(dir *)",
+      "Bash(Get-ChildItem -Force)",
+      "Bash(Select-Object Name, Mode)",
+      "PowerShell(npm run *)",
+      "PowerShell(npx *)",
+      "PowerShell(curl *)",
+      "PowerShell(Invoke-RestMethod *)",
+      "PowerShell(Get-Content *)",
+      "PowerShell(Get-NetTCPConnection *)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(Start-Process *)",
+      "PowerShell(Stop-Process *)",
+      "PowerShell(Invoke-Expression *)",
+      "PowerShell(Write-Host *)",
+      "PowerShell(Read-Host *)",
+      "PowerShell(if *)",
+      "PowerShell(Join-Path *)",
+      "PowerShell(Test-Path *)",
+      "PowerShell(Get-Content *)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "match": "Bash(npm run test*)",
+        "prompt": "Always use --run flag (non-watch) for test commands in this project."
+      },
+      {
+        "match": "Bash(npm -w apps/* run test*)",
+        "prompt": "Always use --run flag (non-watch) for test commands in this project."
+      }
+    ]
+  },
+  "envPrefix": [
+    "VITE_",
+    "NEXT_PUBLIC_"
+  ]
+}

@@ -1,0 +1,455 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String    @id @default(cuid())
+  name               String
+  email              String    @unique
+  phone              String?
+  passwordHash       String    @map("password_hash")
+  role               String    @default("USER") // Legacy field — migrate to userRoles
+  membershipStatus     MemberStatus  @default(REGULAR)
+  membershipExpiresAt DateTime?     @map("membership_expires_at")
+  isActive           Boolean   @default(true) @map("is_active")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  cartItems          CartItem?
+  transactions       Transaction[]
+  consultations      Consultation[]
+  bmiRecords         BmiRecord[]
+  payments           Payment[]
+  conversations      ChatConversation[]
+  messages           ChatMessage[]
+  userRoles          UserRole[]
+  auditLogs          AdminAuditLog[]
+
+  @@map("users")
+}
+
+// ── RBAC Models ───────────────────────────────────────────────────────────
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  isSystem    Boolean  @default(false) @map("is_system")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  permissions RolePermission[]
+  userRoles   UserRole[]
+  navItems    RoleNavigationItem[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  module      String
+  action      String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  roles       RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission  Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  userId String
+  roleId String
+
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+// ── Navigation ─────────────────────────────────────────────────────────────
+
+model NavigationItem {
+  id                String          @id @default(cuid())
+  key               String          @unique
+  label             String
+  route             String?
+  iconKey           String?
+  section           String          @default("main")
+  parentId          String?
+  sortOrder         Int             @default(0) @map("sort_order")
+  isActive          Boolean         @default(true) @map("is_active")
+  isSystem         Boolean         @default(false) @map("is_system")
+  requiredPermission String?       @map("required_permission")
+  audience          Audience        @default(ADMIN)
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+
+  parent            NavigationItem? @relation("NavParent", fields: [parentId], references: [id])
+  children          NavigationItem[] @relation("NavParent")
+  roleVisibility    RoleNavigationItem[]
+
+  @@map("navigation_items")
+}
+
+model RoleNavigationItem {
+  roleId            String
+  navigationItemId  String
+
+  role              Role            @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  navigationItem    NavigationItem  @relation(fields: [navigationItemId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, navigationItemId])
+  @@map("role_navigation_items")
+}
+
+// ── Enums ──────────────────────────────────────────────────────────────────
+
+enum MemberStatus {
+  REGULAR
+  MEMBER
+}
+
+enum Audience {
+  PUBLIC
+  USER
+  ADMIN
+}
+
+// ── Audit Log ─────────────────────────────────────────────────────────────
+
+model AdminAuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String   @map("actor_user_id")
+  action      String
+  module      String
+  entityType  String?  @map("entity_type")
+  entityId    String? @map("entity_id")
+  beforeData  Json?    @map("before_data")
+  afterData   Json?    @map("after_data")
+  metadata    Json?
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  actor       User     @relation(fields: [actorUserId], references: [id])
+
+  @@map("admin_audit_logs")
+}
+
+// ── Discounts ────────────────────────────────────────────────────────────
+
+model Discount {
+  id          String   @id @default(cuid())
+  key         String   @unique @map("discount_key")
+  label       String
+  rate        Float                  // e.g. 0.30 = 30%
+  isActive    Boolean  @default(true) @map("is_active")
+  isSystem    Boolean  @default(false) @map("is_system")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("discounts")
+}
+
+// ── Membership Plans ──────────────────────────────────────────────────────
+
+model MembershipPlan {
+  id          String    @id @default(cuid())
+  key         String    @unique
+  name        String
+  description String?
+  fee         Decimal   @db.Decimal(12, 0)
+  durationDays Int      @default(365) @map("duration_days")
+  discountRate Float    @default(0.30) @map("discount_rate")
+  isActive    Boolean   @default(true) @map("is_active")
+  isDefault   Boolean   @default(false) @map("is_default")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("membership_plans")
+}
+
+model Product {
+  id                        String   @id @default(cuid())
+  name                      String
+  category                  String
+  description               String
+  benefits                  String?
+  price                     Decimal  @db.Decimal(12, 0)
+  stock                     Int      @default(0)
+  imageUrl                  String?  @map("image_url")
+  isAvailable               Boolean  @default(true)  @map("is_available")
+  isMemberDiscountEligible  Boolean  @default(true)  @map("is_member_discount_eligible")
+  isActive                  Boolean  @default(true)  @map("is_active")
+  createdAt                 DateTime @default(now()) @map("created_at")
+  updatedAt                 DateTime @updatedAt @map("updated_at")
+
+  cartProducts      CartProduct[]
+  transactionItems  TransactionItem[]
+
+  @@map("products")
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  userId    String   @unique @map("user_id")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartProduct[]
+
+  @@map("cart_items")
+}
+
+model CartProduct {
+  id         String  @id @default(cuid())
+  cartItemId String  @map("cart_item_id")
+  productId  String  @map("product_id")
+  quantity   Int     @default(1)
+
+  cartItem   CartItem @relation(fields: [cartItemId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id])
+
+  @@unique([cartItemId, productId])
+  @@map("cart_products")
+}
+
+model Transaction {
+  id                    String            @id @default(cuid())
+  userId                String            @map("user_id")
+  membershipStatusSnapshot MemberStatus    @map("membership_status_snapshot")
+  normalTotal           Decimal           @map("normal_total") @db.Decimal(12, 0)
+  totalDiscount         Decimal           @map("total_discount") @db.Decimal(12, 0)
+  finalTotal            Decimal           @map("final_total") @db.Decimal(12, 0)
+  status                TxStatus          @default(PENDING)
+  createdAt             DateTime          @default(now()) @map("created_at")
+  updatedAt             DateTime          @updatedAt @map("updated_at")
+
+  user                  User              @relation(fields: [userId], references: [id])
+  items                 TransactionItem[]
+  payments              Payment[]
+
+  @@map("transactions")
+}
+
+enum TxStatus {
+  PENDING
+  AWAITING_PAYMENT
+  PAID
+  PROCESSING
+  COMPLETED
+  CANCELLED
+}
+
+model TransactionItem {
+  id                 String  @id @default(cuid())
+  transactionId     String  @map("transaction_id")
+  productId          String  @map("product_id")
+  productName        String  @map("product_name")
+  quantity           Int
+  basePrice          Decimal @map("base_price") @db.Decimal(12, 0)
+  discountPercentage Decimal @map("discount_percentage") @db.Decimal(5, 2)
+  discountAmount     Decimal @map("discount_amount") @db.Decimal(12, 0)
+  finalUnitPrice     Decimal @map("final_unit_price") @db.Decimal(12, 0)
+  subtotal           Decimal @db.Decimal(12, 0)
+
+  transaction        Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  product            Product     @relation(fields: [productId], references: [id])
+
+  @@map("transaction_items")
+}
+
+model Consultation {
+  id        String            @id @default(cuid())
+  userId    String            @map("user_id")
+  question  String
+  response  String?
+  status    ConsultationStatus @default(PENDING)
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @updatedAt @map("updated_at")
+
+  user      User              @relation(fields: [userId], references: [id])
+
+  @@map("consultations")
+}
+
+enum ConsultationStatus {
+  PENDING
+  ANSWERED
+  CLOSED
+}
+
+model BmiRecord {
+  id             String   @id @default(cuid())
+  userId         String   @map("user_id")
+  weight         Decimal  @db.Decimal(5, 2)
+  height         Decimal  @db.Decimal(5, 2)
+  bmi            Decimal  @db.Decimal(4, 2)
+  bmiCategory    BmiCategory
+  recommendations String? @map("recommendations")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user           User     @relation(fields: [userId], references: [id])
+
+  @@map("bmi_records")
+}
+
+enum BmiCategory {
+  KURUS
+  NORMAL
+  OVERWEIGHT
+  OBESITY
+}
+
+model Payment {
+  id              String         @id @default(cuid())
+  transactionId   String         @map("transaction_id")
+  userId          String         @map("user_id")
+  method          PaymentMethod
+  provider        String
+  amount          Decimal        @db.Decimal(12, 0)
+  referenceNumber String         @map("reference_number")
+  paymentCode     String?        @map("payment_code")
+  qrPayload       String?        @map("qr_payload")
+  status          PaymentStatus  @default(PENDING)
+  paidAt          DateTime?      @map("paid_at")
+  expiresAt       DateTime       @map("expires_at")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  transaction     Transaction    @relation(fields: [transactionId], references: [id])
+  user            User           @relation(fields: [userId], references: [id])
+
+  @@map("payments")
+}
+
+enum PaymentMethod {
+  qris
+  bca
+  bri
+  bni
+  mandiri
+  ovo
+  gopay
+  dana
+  shopeepay
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+model ChatConversation {
+  id              String           @id @default(cuid())
+  userId          String           @map("user_id")
+  customerName    String           @map("customer_name")
+  category        ChatCategory
+  status          ChatConvStatus   @default(OPEN)
+  assignedAdminId String?          @map("assigned_admin_id")
+  unreadByAdmin   Int              @default(0) @map("unread_by_admin")
+  unreadByUser    Int              @default(0) @map("unread_by_user")
+  lastMessageAt   DateTime        @default(now()) @map("last_message_at")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  user            User             @relation(fields: [userId], references: [id])
+  messages        ChatMessage[]
+
+  @@map("chat_conversations")
+}
+
+enum ChatCategory {
+  SERVICE
+  COMPLAINT
+}
+
+enum ChatConvStatus {
+  OPEN
+  IN_PROGRESS
+  CLOSED
+}
+
+model ChatMessage {
+  id              String   @id @default(cuid())
+  conversationId  String   @map("conversation_id")
+  senderId        String   @map("sender_id")
+  senderRole      SenderRole
+  message         String
+  readAt          DateTime? @map("read_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  conversation    ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender          User            @relation(fields: [senderId], references: [id])
+
+  @@map("chat_messages")
+}
+
+enum SenderRole {
+  ADMIN
+  USER
+}
+
+model Location {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?  @db.Text
+  placeId       String?  @map("place_id")
+  address       String
+  city          String
+  province      String   @default("DKI Jakarta")
+  phone         String?
+  email         String?
+  whatsapp      String?
+  mapsUrl       String   @map("maps_url")
+  latitude      Float?
+  longitude     Float?
+  openingHours  Json?    @map("opening_hours")
+  isPrimary     Boolean  @default(false) @map("is_primary")
+  isActive      Boolean  @default(true) @map("is_active")
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  schedules     LocationSchedule[]
+
+  @@map("locations")
+}
+
+model LocationSchedule {
+  id          String   @id @default(cuid())
+  locationId String   @map("location_id")
+  day        String
+  openTime   String   @map("open_time")
+  closeTime  String   @map("close_time")
+  isClosed   Boolean  @default(false) @map("is_closed")
+  sortOrder  Int      @default(0) @map("sort_order")
+
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@map("location_schedules")
+}

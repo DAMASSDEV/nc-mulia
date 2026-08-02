@@ -1,0 +1,156 @@
+import type { Request, Response, NextFunction } from 'express';
+import { z } from 'zod';
+import { LocationsService } from './service.js';
+import { parseErrors } from '../../middleware/error.js';
+
+const service = new LocationsService();
+
+const scheduleSchema = z.object({
+  day: z.string().min(1).max(50),
+  openTime: z.string().regex(/^\d{2}:\d{2}$/, 'Format HH:MM'),
+  closeTime: z.string().regex(/^\d{2}:\d{2}$/, 'Format HH:MM'),
+  isClosed: z.boolean().default(false),
+  sortOrder: z.number().optional(),
+});
+
+const locationSchema = z.object({
+  name: z.string().min(2).max(200),
+  description: z.string().max(2000).optional(),
+  placeId: z.string().max(100).optional(),
+  address: z.string().min(5).max(500),
+  city: z.string().min(2).max(100),
+  province: z.string().max(100).optional(),
+  phone: z.string().max(30).optional(),
+  email: z.string().email().max(200).optional().or(z.literal('')),
+  whatsapp: z.string().max(30).optional(),
+  mapsUrl: z.string().url().max(1000),
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
+  openingHours: z.record(z.object({
+    open: z.string(),
+    close: z.string(),
+    closed: z.boolean(),
+  })).optional(),
+  isPrimary: z.boolean().default(false),
+  isActive: z.boolean().default(true),
+  sortOrder: z.number().optional(),
+  schedules: z.array(scheduleSchema).optional(),
+});
+
+const statusSchema = z.object({
+  isActive: z.boolean(),
+});
+
+export async function listLocations(req: Request, res: Response, next: NextFunction) {
+  try {
+    const onlyActive = req.query.active === 'true';
+    const locations = await service.list(onlyActive);
+    res.json({ success: true, message: 'OK.', data: locations });
+  } catch (e) {
+    next(e);
+  }
+}
+
+export async function getLocation(req: Request, res: Response, next: NextFunction) {
+  try {
+    const id = req.params.id as string;
+    const location = await service.getById(id);
+    if (!location) {
+      res.status(404).json({ success: false, message: 'Lokasi tidak ditemukan.' });
+      return;
+    }
+    res.json({ success: true, message: 'OK.', data: location });
+  } catch (e) {
+    next(e);
+  }
+}
+
+export async function getPrimary(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const locations = await service.list(false);
+    const primary = locations.find(l => l.isPrimary) ?? locations[0] ?? null;
+    res.json({ success: true, message: 'OK.', data: primary });
+  } catch (e) {
+    next(e);
+  }
+}
+
+export async function createLocation(req: Request, res: Response, next: NextFunction) {
+  try {
+    const parsed = locationSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ success: false, message: 'Data tidak valid.', errors: parseErrors(parsed.error) });
+      return;
+    }
+    const location = await service.create(parsed.data);
+    res.status(201).json({ success: true, message: 'Lokasi berhasil ditambahkan.', data: location });
+  } catch (e) {
+    next(e);
+  }
+}
+
+export async function updateLocation(req: Request, res: Response, next: NextFunction) {
+  try {
+    const parsed = locationSchema.partial().safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ success: false, message: 'Data tidak valid.', errors: parseErrors(parsed.error) });
+      return;
+    }
+    const existing = await service.getById(req.params.id as string);
+    if (!existing) {
+      res.status(404).json({ success: false, message: 'Lokasi tidak ditemukan.' });
+      return;
+    }
+    const location = await service.update(req.params.id as string, parsed.data);
+    res.json({ success: true, message: 'Lokasi berhasil diperbarui.', data: location });
+  } catch (e) {
+    next(e);
+  }
+}
+
+export async function deleteLocation(req: Request, res: Response, next: NextFunction) {
+  try {
+    const existing = await service.getById(req.params.id as string);
+    if (!existing) {
+      res.status(404).json({ success: false, message: 'Lokasi tidak ditemukan.' });
+      return;
+    }
+    await service.remove(req.params.id as string);
+    res.json({ success: true, message: 'Lokasi berhasil dihapus.' });
+  } catch (e) {
+    next(e);
+  }
+}
+
+export async function setLocationStatus(req: Request, res: Response, next: NextFunction) {
+  try {
+    const parsed = statusSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ success: false, message: 'Data tidak valid.', errors: parseErrors(parsed.error) });
+      return;
+    }
+    const existing = await service.getById(req.params.id as string);
+    if (!existing) {
+      res.status(404).json({ success: false, message: 'Lokasi tidak ditemukan.' });
+      return;
+    }
+    const location = await service.setActive(req.params.id as string, parsed.data.isActive);
+    res.json({ success: true, message: 'Status lokasi berhasil diperbarui.', data: location });
+  } catch (e) {
+    next(e);
+  }
+}
+
+export async function setLocationPrimary(req: Request, res: Response, next: NextFunction) {
+  try {
+    const existing = await service.getById(req.params.id as string);
+    if (!existing) {
+      res.status(404).json({ success: false, message: 'Lokasi tidak ditemukan.' });
+      return;
+    }
+    const location = await service.setPrimary(req.params.id as string);
+    res.json({ success: true, message: 'Lokasi utama berhasil diperbarui.', data: location });
+  } catch (e) {
+    next(e);
+  }
+}
