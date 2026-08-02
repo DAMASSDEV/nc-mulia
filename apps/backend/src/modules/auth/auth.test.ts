@@ -79,11 +79,24 @@ describe('AuthService', () => {
       expect(result.email).toBe('john@example.com');
       expect(result.role).toBe('user');
       expect(result.membershipStatus).toBe('regular');
-      expect(result.token).toBeDefined();
       expect(mockPrisma.user.create).toHaveBeenCalledTimes(1);
       const createData = mockPrisma.user.create.mock.calls[0][0];
       expect(createData.data.name).toBe('John Doe');
       expect(createData.data.email).toBe('john@example.com');
+    });
+
+    // Mandatory: register does NOT return a token (no auto-login)
+    it('register does not return a token — no auto-login', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      mockPrisma.user.create.mockResolvedValue({
+        id: 'u-new', name: 'John', email: 'john@example.com', passwordHash: 'hashed',
+        membershipStatus: 'REGULAR', isActive: true, createdAt: new Date(),
+      });
+
+      const svc = new AuthService();
+      const result = await svc.register({ name: 'John', email: 'john@example.com', passwordHash: 'hashed' });
+
+      expect(result).not.toHaveProperty('token');
     });
 
     it('throws 409 when email already registered', async () => {
@@ -314,6 +327,38 @@ describe('Auth Controller', () => {
       expect(status).toHaveBeenCalledWith(400);
     });
 
+    // Mandatory: after register, /api/auth/me returns unauthenticated (no cookie set)
+    it('after register, me endpoint rejects with 401 when no auth cookie is set', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      mockPrisma.user.create.mockResolvedValue({
+        id: 'u-new', name: 'John', email: 'john@example.com', passwordHash: 'hashed',
+        membershipStatus: 'REGULAR', isActive: true, createdAt: new Date(),
+      });
+
+      const json = vi.fn();
+      const status = vi.fn().mockReturnThis();
+      const cookie = vi.fn();
+      const res = { json, status, cookie } as any;
+      const req = { body: { name: 'John', email: 'john@example.com', password: 'password123' } } as any;
+      const next = vi.fn() as any;
+
+      // Register first — no cookie set
+      await register(req, res, next);
+      expect(status).toHaveBeenCalledWith(201);
+      expect(cookie).not.toHaveBeenCalled(); // no auth cookie
+
+      // me endpoint with NO req.user — simulates calling /me without logging in
+      const meJson = vi.fn();
+      const meRes = { json: meJson } as any;
+      const meReq = { user: undefined } as any;
+      const meNext = vi.fn() as any;
+
+      await me(meReq, meRes, meNext);
+
+      // me() catches TypeError from req.user! and calls next(error)
+      expect(meNext).toHaveBeenCalledWith(expect.any(TypeError));
+    });
+
     it('passes errors to next middleware on unexpected error', async () => {
       mockPrisma.user.findUnique.mockRejectedValue(new Error('DB error'));
       const json = vi.fn();
@@ -435,6 +480,21 @@ describe('Auth Controller', () => {
       await me(req, res, next);
 
       expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 404 }));
+    });
+
+    // Mandatory: protected route rejected after register (no cookie set means 401)
+    it('protected route rejected after register — no token means 401', async () => {
+      const json = vi.fn();
+      const status = vi.fn().mockReturnThis();
+      const res = { json, status } as any;
+      const req = { cookies: {} } as any; // no accessToken cookie
+      const next = vi.fn() as any;
+
+      const { authMiddleware } = await import('../../middleware/auth.js');
+      authMiddleware(req, res, next);
+
+      expect(status).toHaveBeenCalledWith(401);
+      expect(json).toHaveBeenCalledWith(expect.objectContaining({ success: false, message: 'Unauthorized.' }));
     });
   });
 });

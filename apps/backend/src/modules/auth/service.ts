@@ -40,21 +40,13 @@ export class AuthService {
       },
     });
 
-    const roleSlug = await this.getUserRoleSlug(user.id);
-    const token = jwt.sign(
-      { userId: user.id, role: roleSlug },
-      env.JWT_SECRET,
-      { expiresIn: env.JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'] }
-    );
-
     return {
-      token,
       id: user.id,
       name: user.name,
       email: user.email,
       phone: user.phone,
-      role: roleSlug,
-      membershipStatus: user.membershipStatus.toLowerCase(),
+      role: 'user',
+      membershipStatus: 'regular',
     };
   }
 
