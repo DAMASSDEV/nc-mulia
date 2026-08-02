@@ -11,18 +11,24 @@ interface MockPrisma {
   transaction: Record<string, ReturnType<typeof vi.fn>>;
   payment: Record<string, ReturnType<typeof vi.fn>>;
   chatConversation: Record<string, ReturnType<typeof vi.fn>>;
+  $transaction: ReturnType<typeof vi.fn>;
 }
 
-vi.mock('../lib/db.js', () => {
-  const mockPrisma: MockPrisma = {
-    user: { findUnique: vi.fn() },
-    product: { findMany: vi.fn(), update: vi.fn() },
-    transaction: { findUnique: vi.fn(), update: vi.fn(), create: vi.fn() },
-    payment: { findFirst: vi.fn(), create: vi.fn(), findUnique: vi.fn() },
-    chatConversation: { findUnique: vi.fn() },
-  };
-  return { prisma: mockPrisma };
+// vi.hoisted runs at module load time — refs are shared between mock factory and test code
+const { user, product, transaction, payment, chatConversation, $transaction } = vi.hoisted(() => {
+  const u = { findUnique: vi.fn() };
+  const p = { findMany: vi.fn(), update: vi.fn() };
+  const t = { findUnique: vi.fn(), update: vi.fn(), create: vi.fn() };
+  const pay = { findFirst: vi.fn(), create: vi.fn(), findUnique: vi.fn() };
+  const conv = { findUnique: vi.fn() };
+  const $tx = vi.fn().mockImplementation(async (fn) => fn({ user: u, product: p, transaction: t }));
+  return { user: u, product: p, transaction: t, payment: pay, chatConversation: conv, $transaction: $tx };
 });
+
+vi.mock('../lib/db.js', () => ({
+  // Return prismaRef directly so all accesses share the same object
+  get prisma() { return { user, product, transaction, payment, chatConversation, $transaction }; },
+}));
 
 let _prisma: MockPrisma;
 const getPrisma = async (): Promise<MockPrisma> => {
@@ -34,7 +40,7 @@ const getPrisma = async (): Promise<MockPrisma> => {
 // Auth Tests
 // ────────────────────────────────────────────────────────────────
 describe('Auth', () => {
-  beforeEach(() => { vi.resetAllMocks(); });
+  beforeEach(() => { vi.clearAllMocks(); });
 
   it('login rejects wrong password', async () => {
     const { AuthService } = await import('../modules/auth/service.js');
@@ -61,7 +67,7 @@ describe('Auth', () => {
 // Transactions - Pricing
 // ────────────────────────────────────────────────────────────────
 describe('Transactions - Pricing', () => {
-  beforeEach(() => { vi.resetAllMocks(); });
+  beforeEach(() => { vi.clearAllMocks(); });
 
   it('active MEMBER gets 30% discount', async () => {
     const { TransactionsService } = await import('../modules/transactions/service.js');
@@ -196,7 +202,7 @@ describe('Transactions - Pricing', () => {
   it('rejects invalid status update', async () => {
     const { TransactionsService } = await import('../modules/transactions/service.js');
     const svc = new TransactionsService();
-    await expect(svc.updateStatus('tx1', 'INVALID_STATUS')).rejects.toMatchObject({ statusCode: 400 });
+    await expect(svc.updateStatus('tx1', 'INVALID_STATUS', 'admin1', 'admin')).rejects.toMatchObject({ statusCode: 400 });
   });
 });
 
@@ -204,7 +210,7 @@ describe('Transactions - Pricing', () => {
 // Payments
 // ────────────────────────────────────────────────────────────────
 describe('Payments', () => {
-  beforeEach(() => { vi.resetAllMocks(); });
+  beforeEach(() => { vi.clearAllMocks(); });
 
   it('rejects payment for another users transaction', async () => {
     const { PaymentsService } = await import('../modules/payments/service.js');
@@ -268,7 +274,7 @@ describe('Payments', () => {
 // Chat
 // ────────────────────────────────────────────────────────────────
 describe('Chat', () => {
-  beforeEach(() => { vi.resetAllMocks(); });
+  beforeEach(() => { vi.clearAllMocks(); });
 
   it('user cannot read another users conversation', async () => {
     const { ChatService } = await import('../modules/chat/service.js');

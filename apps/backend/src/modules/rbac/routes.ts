@@ -24,8 +24,7 @@ router.get('/permissions', authMiddleware, requirePermission('roles:read'));
 router.put('/roles/:roleId/permissions', authMiddleware, requirePermission('roles:manage_permissions'), ctrl.setRolePermissions);
 
 // Navigation
-router.get('/navigation', ctrl.listNavigation);
-router.get('/roles/:roleId/navigation', authMiddleware, ctrl.getRoleNavigation);
+router.get('/roles/:roleId/navigation', authMiddleware, requirePermission('menus:read'), ctrl.getRoleNavigation);
 router.put('/roles/:roleId/navigation', authMiddleware, requirePermission('menus:update'), ctrl.setRoleNavigation);
 
 // User roles & permissions

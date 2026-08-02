@@ -38,7 +38,7 @@ export async function updateStatus(req: Request, res: Response, next: NextFuncti
   try {
     const parsed = updateStatusSchema.safeParse(req.body);
     if (!parsed.success) { res.status(400).json({ success: false, message: 'Status tidak valid.', errors: parseErrors(parsed.error) }); return; }
-    const tx = await service.updateStatus(String(req.params.id), parsed.data.status);
+    const tx = await service.updateStatus(String(req.params.id), parsed.data.status, req.user!.userId, req.user!.role);
     res.json({ success: true, message: 'Status diperbarui.', data: tx });
   } catch (e) { next(e); }
 }

@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockPrisma } = vi.hoisted(() => {
-  const m: Record<string, Record<string, ReturnType<typeof vi.fn>>> = {};
-  m.user = { findUnique: vi.fn() };
-  m.product = { findMany: vi.fn(), update: vi.fn() };
-  m.transaction = { create: vi.fn(), findMany: vi.fn(), count: vi.fn(), update: vi.fn() };
-  return { mockPrisma: m };
+const mockPrisma = vi.hoisted(() => {
+  const user = { findUnique: vi.fn() };
+  const product = { findMany: vi.fn(), update: vi.fn() };
+  const transaction = { create: vi.fn(), findMany: vi.fn(), count: vi.fn(), update: vi.fn(), findUnique: vi.fn() };
+  const $transaction = vi.fn().mockImplementation(async (fn: (tx: { user: typeof user; product: typeof product; transaction: typeof transaction }) => Promise<unknown>) => fn({ user, product, transaction }));
+  return { user, product, transaction, $transaction };
 });
 
 vi.mock('../../lib/db.js', () => ({ prisma: mockPrisma }));
@@ -22,6 +22,10 @@ vi.mock('../../config/env.js', () => ({
     JWT_SECRET: 'test-jwt-secret-must-be-at-least-32-chars-long',
     JWT_EXPIRES_IN: '7d', PAYMENT_SIMULATION_ENABLED: 'false',
   },
+}));
+
+vi.mock('../../modules/audit/service.js', () => ({
+  createAuditLog: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { TransactionsService } from './service.js';
@@ -247,22 +251,55 @@ describe('TransactionsService', () => {
   });
 
   describe('updateStatus', () => {
-    it('updates transaction to valid status', async () => {
+    it('updates transaction to valid next status', async () => {
       const now = new Date();
+      mockPrisma.transaction.findUnique.mockResolvedValue({ id: 'tx1', membershipStatusSnapshot: 'REGULAR', normalTotal: 100000, totalDiscount: 0, finalTotal: 100000, status: 'PENDING', createdAt: now, updatedAt: now, items: [], payments: [] });
+      mockPrisma.transaction.update.mockResolvedValue({ id: 'tx1', membershipStatusSnapshot: 'REGULAR', normalTotal: 100000, totalDiscount: 0, finalTotal: 100000, status: 'CANCELLED', createdAt: now, updatedAt: now, items: [], payments: [] });
+      const svc = new TransactionsService();
+      const tx = await svc.updateStatus('tx1', 'CANCELLED', 'admin1', 'admin');
+      expect(tx.status).toBe('cancelled');
+    });
+    it('returns 400 for invalid status string', async () => {
+      const svc = new TransactionsService();
+      await expect(svc.updateStatus('tx1', 'INVALID', 'admin1', 'admin')).rejects.toMatchObject({ statusCode: 400 });
+    });
+    it('returns 400 for invalid transition (PENDING -> COMPLETED)', async () => {
+      const now = new Date();
+      mockPrisma.transaction.findUnique.mockResolvedValue({ id: 'tx1', membershipStatusSnapshot: 'REGULAR', normalTotal: 100000, totalDiscount: 0, finalTotal: 100000, status: 'PENDING', createdAt: now, updatedAt: now, items: [], payments: [] });
+      const svc = new TransactionsService();
+      await expect(svc.updateStatus('tx1', 'COMPLETED', 'admin1', 'admin')).rejects.toMatchObject({ statusCode: 400 });
+    });
+    it('returns 400 for invalid transition (COMPLETED -> PENDING)', async () => {
+      const now = new Date();
+      mockPrisma.transaction.findUnique.mockResolvedValue({ id: 'tx1', membershipStatusSnapshot: 'REGULAR', normalTotal: 100000, totalDiscount: 0, finalTotal: 100000, status: 'COMPLETED', createdAt: now, updatedAt: now, items: [], payments: [] });
+      const svc = new TransactionsService();
+      await expect(svc.updateStatus('tx1', 'PENDING', 'admin1', 'admin')).rejects.toMatchObject({ statusCode: 400 });
+    });
+    it('restores stock when cancelling', async () => {
+      const now = new Date();
+      const items = [{ id: 'ti1', productId: 'p1', quantity: 3 }];
+      mockPrisma.transaction.findUnique.mockResolvedValue({ id: 'tx1', membershipStatusSnapshot: 'REGULAR', normalTotal: 300000, totalDiscount: 0, finalTotal: 300000, status: 'PENDING', createdAt: now, updatedAt: now, items, payments: [] });
+      mockPrisma.transaction.update.mockResolvedValue({ id: 'tx1', membershipStatusSnapshot: 'REGULAR', normalTotal: 300000, totalDiscount: 0, finalTotal: 300000, status: 'CANCELLED', createdAt: now, updatedAt: now, items, payments: [] });
+      const svc = new TransactionsService();
+      await svc.updateStatus('tx1', 'CANCELLED', 'admin1', 'admin');
+      expect(mockPrisma.product.update).toHaveBeenCalledWith({ where: { id: 'p1' }, data: { stock: { increment: 3 } } });
+    });
+    it('does NOT restore stock when cancelling already-cancelled', async () => {
+      const now = new Date();
+      const items = [{ id: 'ti1', productId: 'p1', quantity: 3 }];
+      mockPrisma.transaction.findUnique.mockResolvedValue({ id: 'tx1', membershipStatusSnapshot: 'REGULAR', normalTotal: 300000, totalDiscount: 0, finalTotal: 300000, status: 'CANCELLED', createdAt: now, updatedAt: now, items, payments: [] });
+      mockPrisma.transaction.update.mockResolvedValue({ id: 'tx1', membershipStatusSnapshot: 'REGULAR', normalTotal: 300000, totalDiscount: 0, finalTotal: 300000, status: 'CANCELLED', createdAt: now, updatedAt: now, items, payments: [] });
+      const svc = new TransactionsService();
+      await svc.updateStatus('tx1', 'CANCELLED', 'admin1', 'admin');
+      expect(mockPrisma.product.update).not.toHaveBeenCalled();
+    });
+    it('allows valid transition chain: PROCESSING -> COMPLETED', async () => {
+      const now = new Date();
+      mockPrisma.transaction.findUnique.mockResolvedValue({ id: 'tx1', membershipStatusSnapshot: 'REGULAR', normalTotal: 100000, totalDiscount: 0, finalTotal: 100000, status: 'PROCESSING', createdAt: now, updatedAt: now, items: [], payments: [] });
       mockPrisma.transaction.update.mockResolvedValue({ id: 'tx1', membershipStatusSnapshot: 'REGULAR', normalTotal: 100000, totalDiscount: 0, finalTotal: 100000, status: 'COMPLETED', createdAt: now, updatedAt: now, items: [], payments: [] });
       const svc = new TransactionsService();
-      const tx = await svc.updateStatus('tx1', 'COMPLETED');
+      const tx = await svc.updateStatus('tx1', 'COMPLETED', 'admin1', 'admin');
       expect(tx.status).toBe('completed');
-    });
-    it('returns 400 for invalid status', async () => {
-      const svc = new TransactionsService();
-      await expect(svc.updateStatus('tx1', 'INVALID')).rejects.toMatchObject({ statusCode: 400 });
-    });
-    it.each(['PENDING', 'AWAITING_PAYMENT', 'PAID', 'PROCESSING', 'COMPLETED', 'CANCELLED'])('accepts valid status %s', async (status) => {
-      const now = new Date();
-      mockPrisma.transaction.update.mockResolvedValue({ id: 'tx1', membershipStatusSnapshot: 'REGULAR', normalTotal: 100000, totalDiscount: 0, finalTotal: 100000, status, createdAt: now, updatedAt: now, items: [], payments: [] });
-      const svc = new TransactionsService();
-      expect(await svc.updateStatus('tx1', status)).toMatchObject({ status: status.toLowerCase() });
     });
   });
 });

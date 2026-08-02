@@ -1,11 +1,26 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db.js';
 import { getMemberDiscountRate } from '../pricing/index.js';
+import { createAuditLog } from '../audit/service.js';
 
 function err(status: number, msg: string) {
   const e = Object.assign(new Error(msg), { statusCode: status });
   return e;
 }
+
+// Valid status transitions: PENDING → AWAITING_PAYMENT | CANCELLED
+// AWAITING_PAYMENT → PAID | CANCELLED
+// PAID → PROCESSING | CANCELLED
+// PROCESSING → COMPLETED | CANCELLED
+// COMPLETED / CANCELLED are terminal (no outgoing transitions)
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  PENDING: ['AWAITING_PAYMENT', 'CANCELLED'],
+  AWAITING_PAYMENT: ['PAID', 'CANCELLED'],
+  PAID: ['PROCESSING', 'CANCELLED'],
+  PROCESSING: ['COMPLETED', 'CANCELLED'],
+  COMPLETED: [],
+  CANCELLED: [],
+};
 
 export class TransactionsService {
   async create(userId: string, items: Array<{ productId: string; quantity: number }>) {
@@ -52,26 +67,31 @@ export class TransactionsService {
     const totalDiscount = priceItems.reduce((s, i) => s + Number(i.discountAmount) * i.quantity, 0);
     const finalTotal = priceItems.reduce((s, i) => s + Number(i.subtotal), 0);
 
-    const tx = await prisma.transaction.create({
-      data: {
-        userId,
-        membershipStatusSnapshot: isMember ? 'MEMBER' : 'REGULAR',
-        normalTotal: new Prisma.Decimal(normalTotal),
-        totalDiscount: new Prisma.Decimal(totalDiscount),
-        finalTotal: new Prisma.Decimal(finalTotal),
-        status: 'PENDING',
-        items: { create: priceItems },
-      },
-      include: { items: true },
-    });
+    // Atomic: create transaction + deduct stock in a single DB transaction
+    const tx = await prisma.$transaction(async (tx) => {
+      const created = await tx.transaction.create({
+        data: {
+          userId,
+          membershipStatusSnapshot: isMember ? 'MEMBER' : 'REGULAR',
+          normalTotal: new Prisma.Decimal(normalTotal),
+          totalDiscount: new Prisma.Decimal(totalDiscount),
+          finalTotal: new Prisma.Decimal(finalTotal),
+          status: 'PENDING',
+          items: { create: priceItems },
+        },
+        include: { items: true },
+      });
 
-    // Deduct stock
-    await Promise.all(items.map(item =>
-      prisma.product.update({
-        where: { id: item.productId },
-        data: { stock: { decrement: item.quantity } },
-      })
-    ));
+      // Deduct stock atomically within same transaction
+      await Promise.all(items.map(item =>
+        tx.product.update({
+          where: { id: item.productId },
+          data: { stock: { decrement: item.quantity } },
+        })
+      ));
+
+      return created;
+    });
 
     return this.format(tx);
   }
@@ -120,14 +140,56 @@ export class TransactionsService {
     };
   }
 
-  async updateStatus(id: string, status: string) {
+  async updateStatus(id: string, status: string, actorId: string, actorRole: string) {
     const valid = ['PENDING', 'AWAITING_PAYMENT', 'PAID', 'PROCESSING', 'COMPLETED', 'CANCELLED'];
     if (!valid.includes(status)) throw err(400, 'Status tidak valid.');
-    const tx = await prisma.transaction.update({
-      where: { id },
-      data: { status: status as 'PENDING' | 'AWAITING_PAYMENT' | 'PAID' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED' },
-      include: { items: true, payments: { select: { id: true, method: true, status: true, amount: true } } },
+
+    const existing = await prisma.transaction.findUnique({ where: { id }, include: { items: true } });
+    if (!existing) throw err(404, 'Transaksi tidak ditemukan.');
+
+    // No-op if already in target status
+    if (existing.status === status) {
+      return this.format({ ...existing, payments: [] } as any);
+    }
+
+    // Validate transition
+    const allowed = VALID_TRANSITIONS[existing.status] ?? [];
+    if (!allowed.includes(status)) {
+      throw err(400, `Tidak dapat mengubah status dari ${existing.status} ke ${status}.`);
+    }
+
+    const previousStatus = existing.status;
+
+    const tx = await prisma.$transaction(async (tx) => {
+      // Restore stock if cancelling
+      if (status === 'CANCELLED' && previousStatus !== 'CANCELLED') {
+        await Promise.all(existing.items.map(item =>
+          tx.product.update({
+            where: { id: item.productId },
+            data: { stock: { increment: item.quantity } },
+          })
+        ));
+      }
+
+      return tx.transaction.update({
+        where: { id },
+        data: { status: status as 'PENDING' | 'AWAITING_PAYMENT' | 'PAID' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED' },
+        include: { items: true, payments: { select: { id: true, method: true, status: true, amount: true } } },
+      });
     });
+
+    // Audit log
+    try {
+      await createAuditLog({
+        actorUserId: actorId,
+        action: 'UPDATE',
+        module: 'transactions',
+        entityType: 'transaction',
+        entityId: id,
+        metadata: { previousStatus, newStatus: status, role: actorRole },
+      });
+    } catch { /* non-blocking */ }
+
     return this.format(tx);
   }
 

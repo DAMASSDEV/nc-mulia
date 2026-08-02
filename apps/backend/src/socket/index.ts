@@ -2,6 +2,7 @@ import type { Server as HttpServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
+import { prisma } from '../lib/db.js';
 
 interface AuthPayload {
   userId: string;
@@ -43,8 +44,14 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
     const user = (socket as any).user as AuthPayload;
     socket.join(`user:${user.userId}`);
 
-    socket.on('chat:join', (conversationId: string) => {
-      socket.join(`chat:${conversationId}`);
+    socket.on('chat:join', async (conversationId: string) => {
+      try {
+        const conv = await prisma.chatConversation.findUnique({ where: { id: conversationId } });
+        if (!conv) return;
+        // User must own the conversation or be an admin
+        if (conv.userId !== user.userId && user.role !== 'admin') return;
+        socket.join(`chat:${conversationId}`);
+      } catch { /* silently reject invalid conversation IDs */ }
     });
 
     socket.on('chat:leave', (conversationId: string) => {

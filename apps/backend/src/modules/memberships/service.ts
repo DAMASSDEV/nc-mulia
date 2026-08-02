@@ -1,9 +1,7 @@
 import { prisma } from '../../lib/db.js';
-import { getDefaultMembershipPlan } from '../pricing/index.js';
+import { getDefaultMembershipPlan, getMemberDiscountRate } from '../pricing/index.js';
 
 export class MembershipService {
-  private MEMBER_DISCOUNT = 0.30;
-
   async getStatus(userId: string) {
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { membershipStatus: true, membershipExpiresAt: true } });
     if (!user) { const err: any = new Error('User tidak ditemukan.'); err.statusCode = 404; throw err; }
@@ -31,9 +29,10 @@ export class MembershipService {
     return { status: updated.membershipStatus.toLowerCase(), expiresAt: null };
   }
 
-  calculateMemberPrice(basePrice: number, _userId?: string) {
-    const discount = basePrice * this.MEMBER_DISCOUNT;
-    return { finalPrice: basePrice - discount, discount, discountPercentage: this.MEMBER_DISCOUNT * 100, isMember: true };
+  async calculateMemberPrice(basePrice: number, _userId?: string) {
+    const discountRate = await getMemberDiscountRate();
+    const discount = basePrice * discountRate;
+    return { finalPrice: basePrice - discount, discount, discountPercentage: discountRate * 100, isMember: true };
   }
 
   async getUserMembership(userId: string) {
@@ -45,7 +44,7 @@ export class MembershipService {
   async applyMemberPricing(basePrice: number, userId: string) {
     const isMember = await this.getUserMembership(userId);
     if (!isMember) return { finalPrice: basePrice, discount: 0, discountPercentage: 0, isMember: false };
-    return this.calculateMemberPrice(basePrice);
+    return this.calculateMemberPrice(basePrice, userId);
   }
 
   async getDefaultPlanFee(): Promise<number> {

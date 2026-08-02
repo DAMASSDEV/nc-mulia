@@ -185,10 +185,14 @@ async function seed() {
   });
   console.log(`  Assigned ${allNavs.length} nav items to Super Admin`);
 
-  // 8. Assign nav items to ADMIN (filter by permissions)
+  // 8. Assign nav items to ADMIN (based on their actual permissions)
+  // Admin has all permissions except roles:delete
   const adminNavs = await prisma.navigationItem.findMany({
     where: {
-      requiredPermission: null,
+      OR: [
+        { requiredPermission: null },
+        { requiredPermission: { not: 'roles:delete' } },
+      ],
     },
   });
   await prisma.roleNavigationItem.deleteMany({ where: { roleId: ADMIN_ROLE_ID } });
