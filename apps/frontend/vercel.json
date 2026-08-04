@@ -6,12 +6,12 @@
   "devCommand": "npm run dev",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://nc-mulia-backend-k3wk4ewwn-dzakysyaams-projects.vercel.app/api/$1" },
+    { "source": "/api/(.*)", "destination": "https://nc-mulia-backend-dzakysyaam-dzakysyaams-projects.vercel.app/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "regions": ["sin1"],
   "env": {
-    "VITE_API_URL": "https://nc-mulia-backend-k3wk4ewwn-dzakysyaams-projects.vercel.app",
-    "VITE_SOCKET_URL": "https://nc-mulia-backend-k3wk4ewwn-dzakysyaams-projects.vercel.app"
+    "VITE_API_URL": "https://nc-mulia-backend-dzakysyaam-dzakysyaams-projects.vercel.app",
+    "VITE_SOCKET_URL": "https://nc-mulia-backend-dzakysyaam-dzakysyaams-projects.vercel.app"
   }
 }
