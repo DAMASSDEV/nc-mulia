@@ -1,4 +1,4 @@
-import { type Page, type Locator, expect } from '@playwright/test';
+import { type Page, expect } from '@playwright/test';
 
 /**
  * NC MULIA E2E Test Helpers
@@ -6,6 +6,26 @@ import { type Page, type Locator, expect } from '@playwright/test';
  * Shared utilities for interacting with the NC MULIA frontend.
  * These helpers abstract common interactions so test files stay readable.
  */
+
+/** Hardcoded API base for Preview URL (used by helpers that run API calls).
+ *  The frontend runs on Vercel with no server-side API proxy for ctx.request,
+ *  so we must use the backend Preview URL directly. */
+const API_BASE = process.env.PLAYWRIGHT_API_BASE || 'https://backend-indol-chi-55.vercel.app';
+
+/** Module-level real product ID cache. Reset per test via resetProductCache. */
+let _realProductIds: string[] = [];
+
+export function _getRealProductIds(): string[] {
+  return _realProductIds;
+}
+
+export function _setRealProductIds(ids: string[]): void {
+  _realProductIds = ids;
+}
+
+export function resetProductCache(): void {
+  _realProductIds = [];
+}
 
 /* ─── Credentials ─────────────────────────────────────────── */
 
@@ -50,13 +70,20 @@ export async function login(page: Page, email: string, password: string): Promis
   await page.getByLabel('Password').fill(password);
   await page.getByRole('button', { name: 'Masuk' }).last().click();
 
-  // Wait for modal to close (indicates success) or error to appear
-  await Promise.race([
-    // Success: modal closes and user name appears in navbar
-    page.waitForFunction(() => !document.querySelector('[role="dialog"]'), { timeout: 10_000 }),
+  // Wait for error message (indicates failure) OR user email in navbar (indicates success)
+  const result = await Promise.race([
     // Failure: error message appears
-    page.waitForSelector('[class*="bg-danger-soft"]', { timeout: 5_000 }),
+    page.waitForSelector('[class*="bg-danger-soft"]', { timeout: 5_000 }).then(() => 'error' as const),
+    // Success: user email appears in navbar (logged in state)
+    page.getByText(email).waitFor({ timeout: 10_000 }).then(() => 'success' as const),
   ]);
+
+  if (result === 'error') {
+    throw new Error('Login failed: invalid credentials');
+  }
+
+  // Extra wait: ensure auth state is fully propagated before navigation
+  await page.waitForTimeout(500);
 }
 
 /**
@@ -175,21 +202,64 @@ export async function dismissToasts(page: Page): Promise<void> {
   }
 }
 
+/** Backend URL — Vercel routes /api/* from the frontend domain to the backend. */
+const BACKEND_URL = 'https://frontend-xi-eight-q41ejvqmro.vercel.app';
+
 /* ─── Cart Helpers ─────────────────────────────────────────── */
 
 /**
- * Adds a product to the cart from the products page.
- * Assumes the products page is already loaded.
+ * Fetches products from the API and caches real DB product IDs (UUID-format).
+ * Uses page.evaluate() so cookies from the browser session are included automatically.
+ */
+export async function waitForProductsToLoad(page: Page): Promise<void> {
+  const body = await page.evaluate(async ({ backendUrl }: { backendUrl: string }) => {
+    const resp = await fetch(`${backendUrl}/api/products`);
+    return resp.json();
+  }, { backendUrl: BACKEND_URL });
+  _realProductIds = (body.data || [])
+    .filter((p: { id: string; isAvailable: boolean; stock: number }) =>
+      /^[a-z_]+_[a-z0-9]+$/i.test(p.id) && p.isAvailable && p.stock > 0)
+    .map((p: { id: string }) => p.id);
+}
+
+/**
+ * Clears the user's cart via direct API call and localStorage.
+ * Uses page.evaluate() so cookies from the browser session are included.
+ */
+export async function clearCart(page: Page): Promise<void> {
+  await page.evaluate(async ({ backendUrl }: { backendUrl: string }) => {
+    await fetch(`${backendUrl}/api/cart`, { method: 'DELETE' });
+  }, { backendUrl: BACKEND_URL });
+  // Clear localStorage so frontend re-fetches from the clean backend on reload
+  await page.evaluate(() => localStorage.removeItem('nc_mulia_cart'));
+}
+
+/**
+ * Adds a product to the cart via direct API call.
+ * Uses page.evaluate() so cookies from the browser session are included.
  */
 export async function addFirstProductToCart(page: Page): Promise<void> {
-  // Find the first "Tambah ke Keranjang" button
-  const addButton = page.locator('button:has-text("Tambah ke Keranjang")').first();
-  await addButton.click();
-  // Wait for the "Ditambahkan!" or "Sudah di Keranjang" state
-  await page.waitForSelector(
-    page.locator('button:has-text("Ditambahkan"), button:has-text("Sudah di Keranjang")'),
-    { timeout: 5_000 }
-  );
+  // Ensure product IDs are cached
+  if (_realProductIds.length === 0) {
+    await waitForProductsToLoad(page);
+  }
+
+  if (_realProductIds.length === 0) {
+    throw new Error('No available real DB products found. Ensure products exist in DB with stock > 0.');
+  }
+
+  const body = await page.evaluate(async ({ backendUrl, productId }: { backendUrl: string; productId: string }) => {
+    const resp = await fetch(`${backendUrl}/api/cart/items`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productId, quantity: 1 }),
+    });
+    return resp.json();
+  }, { backendUrl: BACKEND_URL, productId: _realProductIds[0] });
+
+  if (!body.success) {
+    throw new Error(`Cart API rejected product ${_realProductIds[0]}: ${body.message}`);
+  }
 }
 
 /* ─── Admin Helpers ─────────────────────────────────────────── */

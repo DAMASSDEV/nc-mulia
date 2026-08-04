@@ -7,31 +7,37 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests',
 
-  /* Run tests in files in parallel */
+  /* Run tests serially — E2E tests share database state */
   fullyParallel: false,
 
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
 
-  /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
+  /* Retry once on failure for Preview */
+  retries: process.env.CI ? 2 : 1,
 
-  /* Opt out of parallel tests on CI */
-  workers: process.env.CI ? 1 : 1,
+  /* Single worker for Preview (avoids race conditions on shared DB) */
+  workers: 1,
 
-  /* Reporter to use */
+  /* Reporter: html output + list + custom progress */
   reporter: [
     ['html', { outputFolder: 'playwright-report' }],
+    ['./tests/reporters/progress-reporter.cjs', {}],
     ['list'],
   ],
 
   /* Shared settings for all projects */
   use: {
-    /* Base URL for navigation */
+    /* Base URL — set via PLAYWRIGHT_BASE_URL env var */
     baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173',
 
-    /* Collect trace when retrying the failed test */
+    /* Collect trace, screenshot, video on failure only */
     trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+
+    /* Collect console errors */
+    actionTimeout: 10_000,
   },
 
   /* Configure projects for major browsers */
@@ -46,15 +52,8 @@ export default defineConfig({
     },
   ],
 
-  /* Run local dev server before starting the tests */
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
-    stdout: 'pipe',
-    stderr: 'pipe',
-  },
+  /* No webServer — use PLAYWRIGHT_BASE_URL for Preview testing */
+  webServer: undefined,
 
   /* Timeout for each test */
   timeout: 30_000,

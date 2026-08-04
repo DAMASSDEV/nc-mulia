@@ -9,6 +9,7 @@ const service = new UsersService();
 
 const querySchema = z.object({
   search: z.string().optional(),
+  role: z.string().optional(),
   page: z.coerce.number().optional(),
   limit: z.coerce.number().optional(),
 });

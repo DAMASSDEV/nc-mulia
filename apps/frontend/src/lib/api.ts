@@ -119,7 +119,7 @@ export const paymentApi = {
 
 // ── Admin ───────────────────────────────────────────────────────────────
 export const adminUsersApi = {
-  list: (p?: { search?: string; page?: number; limit?: number }) => {
+  list: (p?: { search?: string; role?: string; page?: number; limit?: number }) => {
     const q = new URLSearchParams(p as Record<string, string>).toString();
     return req<{ users: User[]; pagination: PaginationMeta }>(`/admin/users${q ? `?${q}` : ''}`);
   },

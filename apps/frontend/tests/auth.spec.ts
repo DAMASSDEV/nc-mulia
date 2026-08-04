@@ -161,8 +161,8 @@ test.describe('User authentication', () => {
     await login(page, TEST_CREDENTIALS.admin.email, TEST_CREDENTIALS.admin.password);
 
     // Admin button should appear in navbar
-    const adminLink = page.getByText('Admin');
-    await expect(adminLink).toBeVisible({ timeout: 10_000 });
+    const adminLink = page.locator('header a[href="/admin"]').or(page.locator('header').getByText('Admin'));
+    await expect(adminLink.first()).toBeVisible({ timeout: 10_000 });
   });
 });
 

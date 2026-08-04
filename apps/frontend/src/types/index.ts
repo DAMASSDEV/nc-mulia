@@ -8,7 +8,8 @@ export interface User {
   name: string;
   email: string;
   phone?: string;
-  role: Role;
+  role: Role; // Primary role (legacy RBAC field)
+  roles?: string[]; // RBAC roles from userRoles junction
   membershipStatus?: MemberStatus;
   membershipStartedAt?: string;
   membershipExpiresAt?: string | null;

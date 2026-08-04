@@ -78,7 +78,7 @@ export default function AdminRoles({ user, onLogout }: { user: User; onLogout: (
       if ((editRole as any).id) {
         await fetch(`/api/admin/rbac/roles/${(editRole as any).id}`, {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: editRole.name, description: editRole.description }),
+          body: JSON.stringify({ name: editRole.name, description: editRole.description, isActive: editRole.isActive }),
           credentials: 'include',
         });
       } else {
@@ -233,6 +233,15 @@ export default function AdminRoles({ user, onLogout }: { user: User; onLogout: (
                 <label className="block text-sm font-medium text-foreground mb-1.5">Deskripsi</label>
                 <Input value={editRole.description ?? ''} onChange={e => setEditRole(r => ({ ...r, description: e.target.value }))} placeholder="Opsional" className="w-full" />
               </div>
+              {editRole.id && (
+                <div className="flex items-center justify-between py-3 border-t border-border">
+                  <div>
+                    <span className="text-sm font-medium text-foreground">Status Aktif</span>
+                    <p className="text-xs text-foreground-muted mt-0.5">Role nonaktif tidak dapat digunakan</p>
+                  </div>
+                  <Toggle checked={editRole.isActive ?? true} onChange={e => setEditRole(r => ({ ...r, isActive: e.currentTarget.checked }))} />
+                </div>
+              )}
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
                 <Button variant="ghost" size="sm" onClick={() => setEditModalOpen(false)}>Batal</Button>
                 <Button size="sm" onClick={saveRoleEdit} disabled={saving || !editRole.name?.trim()}>

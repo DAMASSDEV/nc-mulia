@@ -28,6 +28,16 @@ app.get('/api/health', (_req, res) => {
   res.json({ success: true, message: 'OK', data: { timestamp: new Date().toISOString() } });
 });
 
+app.get('/api/debug/routes', (_req, res) => {
+  const routes: string[] = [];
+  app._router.stack.forEach((layer: any) => {
+    if (layer.name === 'router') {
+      routes.push(layer.regexp.source.substring(0, 60));
+    }
+  });
+  res.json({ success: true, routes });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userProfileRoutes);
 app.use('/api/admin/users', adminUserRoutes);

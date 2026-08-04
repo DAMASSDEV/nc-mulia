@@ -12,10 +12,10 @@ test.describe('Public pages for guests', () => {
 
   test('home page loads without errors', async ({ page }) => {
     // Check hero section is visible
-    await expect(page.getByText(/solusi nutrisi/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('main').getByText(/solusi nutrisi/i)).toBeVisible({ timeout: 10_000 });
     // Check key features are visible
-    await expect(page.getByText(/konsultasi nutrisi/i)).toBeVisible();
-    await expect(page.getByText(/hitung bmi/i)).toBeVisible();
+    await expect(page.getByRole('main').getByText(/konsultasi nutrisi/i)).toBeVisible();
+    await expect(page.getByRole('main').getByText(/hitung bmi/i)).toBeVisible();
     // No JS errors visible as text, and page renders properly
     await expect(page.locator('header')).toBeVisible();
     await expect(page.locator('footer')).toBeVisible();
@@ -25,7 +25,7 @@ test.describe('Public pages for guests', () => {
     await page.goto('/produk-herbalife', { waitUntil: 'networkidle' });
 
     // Page title should be visible
-    await expect(page.getByText(/herbalife shop/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('main').getByText(/herbalife shop/i)).toBeVisible({ timeout: 10_000 });
     // Search input should be visible
     await expect(page.getByPlaceholder(/cari produk/i)).toBeVisible();
     // At least one product should be displayed (static data always shows products)

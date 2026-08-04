@@ -31,6 +31,7 @@ function formatDate(dateStr: string): string {
  
 export default function AdminUsers({ user, onLogout }: { user: UserType; onLogout: () => void }) {
   const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -41,7 +42,7 @@ export default function AdminUsers({ user, onLogout }: { user: UserType; onLogou
 
   useEffect(() => {
     let ignore = false;
-    adminUsersApi.list({ search: search || undefined, page: 1, limit: 20 }).then(res => {
+    adminUsersApi.list({ search: search || undefined, role: roleFilter || undefined, page: 1, limit: 20 }).then(res => {
       if (!ignore && res.success && res.data) {
         setUsers(res.data.users);
         setTotal(res.data.pagination.total);
@@ -50,11 +51,11 @@ export default function AdminUsers({ user, onLogout }: { user: UserType; onLogou
       }
     }).catch(() => {}).finally(() => { if (!ignore) setLoading(false); });
     return () => { ignore = true; };
-  }, [search]);
+  }, [search, roleFilter]);
 
   const fetchPage = (pageNum: number) => {
     setLoading(true);
-    adminUsersApi.list({ search: search || undefined, page: pageNum, limit: 20 }).then(res => {
+    adminUsersApi.list({ search: search || undefined, role: roleFilter || undefined, page: pageNum, limit: 20 }).then(res => {
       if (res.success && res.data) {
         setUsers(res.data.users);
         setTotal(res.data.pagination.total);
@@ -116,6 +117,16 @@ export default function AdminUsers({ user, onLogout }: { user: UserType; onLogou
               icon={<Search className="w-4 h-4" />}
             />
           </div>
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="w-full sm:w-48 border border-border rounded-xl px-4 py-2.5 text-sm bg-surface text-foreground focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+          >
+            <option value="">Semua Role</option>
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+            <option value="super_admin">Super Admin</option>
+          </select>
         </div>
 
         <Card padding="none" className="overflow-hidden">
@@ -127,6 +138,7 @@ export default function AdminUsers({ user, onLogout }: { user: UserType; onLogou
                   <th className="text-left px-5 py-3.5 text-xs font-semibold text-foreground-muted uppercase tracking-wide hidden md:table-cell">Email</th>
                   <th className="text-left px-5 py-3.5 text-xs font-semibold text-foreground-muted uppercase tracking-wide">Membership</th>
                   <th className="text-left px-5 py-3.5 text-xs font-semibold text-foreground-muted uppercase tracking-wide hidden lg:table-cell">Berlaku</th>
+                  <th className="text-left px-5 py-3.5 text-xs font-semibold text-foreground-muted uppercase tracking-wide hidden lg:table-cell">Role</th>
                   <th className="text-left px-5 py-3.5 text-xs font-semibold text-foreground-muted uppercase tracking-wide hidden lg:table-cell">Bergabung</th>
                   <th className="text-left px-5 py-3.5 text-xs font-semibold text-foreground-muted uppercase tracking-wide">Status</th>
                   <th className="text-right px-5 py-3.5 text-xs font-semibold text-foreground-muted uppercase tracking-wide">Aksi</th>
@@ -166,6 +178,11 @@ export default function AdminUsers({ user, onLogout }: { user: UserType; onLogou
                     </td>
                     <td className="px-5 py-4 hidden lg:table-cell text-xs text-foreground-muted">
                       {u.membershipExpiresAt ? formatDate(u.membershipExpiresAt) : '-'}
+                    </td>
+                    <td className="px-5 py-4 hidden lg:table-cell text-xs text-foreground-muted">
+                      {u.roles?.length ? u.roles.map(r => (
+                        <span key={r} className="inline-block mr-1 px-1.5 py-0.5 rounded text-xs bg-brand-primary-soft text-brand-primary">{r.replace('_', ' ')}</span>
+                      )) : <span className="text-foreground-subtle">—</span>}
                     </td>
                     <td className="px-5 py-4 hidden lg:table-cell text-xs text-foreground-muted">{u.createdAt ? formatDate(u.createdAt) : '-'}</td>
                     <td className="px-5 py-4">

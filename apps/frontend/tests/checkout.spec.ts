@@ -5,6 +5,7 @@ import {
   logout,
   TEST_CREDENTIALS,
   addFirstProductToCart,
+  waitForProductsToLoad,
 } from './helpers';
 
 /* ─── Login Helper ─────────────────────────────────────────── */
@@ -25,7 +26,7 @@ test.describe('Full checkout flow', () => {
 
     // Navigate to products
     await page.goto('/produk-herbalife', { waitUntil: 'networkidle' });
-    await page.waitForTimeout(500);
+    await waitForProductsToLoad(page);
 
     // Add first product
     await addFirstProductToCart(page);
@@ -53,7 +54,7 @@ test.describe('Full checkout flow', () => {
 
     // Add a product
     await page.goto('/produk-herbalife', { waitUntil: 'networkidle' });
-    await page.waitForTimeout(500);
+    await waitForProductsToLoad(page);
     await addFirstProductToCart(page);
     await page.waitForTimeout(500);
 
@@ -81,7 +82,7 @@ test.describe('Full checkout flow', () => {
 
     // Add a product
     await page.goto('/produk-herbalife', { waitUntil: 'networkidle' });
-    await page.waitForTimeout(500);
+    await waitForProductsToLoad(page);
     await addFirstProductToCart(page);
     await page.waitForTimeout(500);
 
@@ -105,7 +106,7 @@ test.describe('Full checkout flow', () => {
 
     // Add a product and checkout
     await page.goto('/produk-herbalife', { waitUntil: 'networkidle' });
-    await page.waitForTimeout(500);
+    await waitForProductsToLoad(page);
     await addFirstProductToCart(page);
     await page.waitForTimeout(500);
     await page.goto('/keranjang', { waitUntil: 'networkidle' });
