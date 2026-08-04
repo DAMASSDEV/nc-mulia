@@ -203,7 +203,7 @@ export async function dismissToasts(page: Page): Promise<void> {
 }
 
 /** Backend URL — Vercel routes /api/* from the frontend domain to the backend. */
-const BACKEND_URL = 'https://nc-mulia-frontend-ehi5p084o-dzakysyaams-projects.vercel.app';
+const BACKEND_URL = 'https://nc-mulia-frontend-1311mru59-dzakysyaams-projects.vercel.app';
 
 /* ─── Cart Helpers ─────────────────────────────────────────── */
 
