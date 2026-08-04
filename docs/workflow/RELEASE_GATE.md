@@ -1,17 +1,19 @@
 # Release Gate
-STATUS: READY_FOR_PRODUCTION_APPROVAL
+STATUS: DEPLOYED_TO_PRODUCTION
 
-## Final Deployment Summary
+## Production Deployment Summary
 
 **Branch:** `fix/nc-mulia-system-hardening`
-**Commit:** `b162b3a8f59b5f8e1c27d3e69a0f4b8c6d2e1a0f` (URL sync to stable alias)
+**Final Commit:** `ae8c18b`
 **Date:** 2026-08-04
-**Reviewed:** 2026-08-04 (final CORS resolution pass)
+**Deployed:** 2026-08-04T05:42:00Z
 
-## Preview URLs (Stable Alias)
-- **Frontend:** https://nc-mulia-frontend-dzakysyaam-dzakysyaams-projects.vercel.app
-- **Backend:** https://nc-mulia-backend-dzakysyaam-dzakysyaams-projects.vercel.app
-- **Backend (direct):** https://nc-mulia-backend-r2iubjcmn-dzakysyaams-projects.vercel.app
+## Production URLs
+- **Frontend:** https://frontend-xi-eight-q41ejvqmro.vercel.app
+- **Backend:** https://backend-indol-chi-55.vercel.app
+
+## CORS (Production)
+`Access-Control-Allow-Origin: https://frontend-xi-eight-q41ejvqmro.vercel.app` + `Credentials: true`
 
 ## 26-Point Evidence Summary
 
@@ -31,7 +33,7 @@ STATUS: READY_FOR_PRODUCTION_APPROVAL
 | 12 | Backend Preview URL | PASS | HTTP 200 + valid JSON health |
 | 13 | Railway MySQL status | PASS | Backend API (health, products) responds 200 — DB reachable |
 | 14 | Prisma migration status | PASS | Seeded data verified via E2E (users, products, RBAC) |
-| 15 | CORS & cookie | PASS | `Access-Control-Allow-Origin: https://nc-mulia-frontend-dzakysyaam-dzakysyaams-projects.vercel.app` + `Credentials: true` |
+| 15 | CORS & cookie | PASS | `Access-Control-Allow-Origin: https://frontend-xi-eight-q41ejvqmro.vercel.app` + `Credentials: true` |
 | 16 | RBAC | PASS | Login returns `super_admin` role, auth/me verified |
 | 17 | Cart & checkout | PASS | E2E tests for add/remove/adjust/checkout all pass |
 | 18 | Membership & discount | PASS | Login returns `membershipStatus`, products show `isMemberDiscountEligible` |
@@ -83,7 +85,7 @@ All previously-failing 8 tests now pass: dashboard selectors, cart add/remove/ad
 - Backend health HTTP 200: PASS
 - Admin login (POST /api/auth/login): HTTP 200, role=super_admin
 - auth/me HTTP 200: PASS
-- CORS headers: `Access-Control-Allow-Origin: https://nc-mulia-frontend-dzakysyaam-dzakysyaams-projects.vercel.app` + `Credentials: true`
+- CORS headers: `Access-Control-Allow-Origin: https://frontend-xi-eight-q41ejvqmro.vercel.app` + `Credentials: true`
 - No localhost in API responses: PASS
 - Products API: HTTP 200 with 15 products
 - No HTTP 500 on key endpoints: PASS
@@ -103,7 +105,7 @@ All previously-failing 8 tests now pass: dashboard selectors, cart add/remove/ad
 | 1 | Shake category shows only E2E test products (stock=0) | LOW | Normal products are in other categories |
 | 2 | No real WhatsApp payment integration | LOW | Checkout triggers WhatsApp link — payment is manual confirmation |
 | 3 | Live Chat uses Socket.io polling fallback if WS fails | LOW | Chat works via polling fallback |
-| 4 | No production domain configured yet | INFO | Preview URLs are temporary |
+| 4 | No production domain configured yet | INFO | Vercel auto-generated domain; custom domain can be added in Vercel dashboard |
 | 5 | No email sending configured | INFO | Membership approval notifies via WhatsApp |
 
 ## Environment Variable Checklist
@@ -169,5 +171,5 @@ cd apps/frontend && vercel --prod
 ## Version Info
 Branch: fix/nc-mulia-system-hardening
 Repository: https://github.com/dzakysyaam/nc-mulia.git
-Last updated: 2026-08-04 (final CORS sync)
-Commit: b162b3a
+Last updated: 2026-08-04 (production deployed)
+Commit: ae8c18b (deployed to production)

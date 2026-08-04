@@ -1,17 +1,14 @@
 # NC MULIA — Deployment Handoff
 ## Session Complete — 2026-08-04
 
-## STATUS: READY_FOR_PRODUCTION_APPROVAL
+## STATUS: DEPLOYED_TO_PRODUCTION
 
-## Final Commit & Preview URLs
+## Production URLs
 
-| Item | Value |
-|------|-------|
-| **Branch** | `fix/nc-mulia-system-hardening` |
-| **Commit** | `b162b3a` — fix: update test URLs to use stable Vercel alias domains |
-| **Frontend Preview** | https://nc-mulia-frontend-dzakysyaam-dzakysyaams-projects.vercel.app |
-| **Backend Preview** | https://nc-mulia-backend-dzakysyaam-dzakysyaams-projects.vercel.app |
-| **Backend direct** | https://nc-mulia-backend-r2iubjcmn-dzakysyaams-projects.vercel.app |
+| Service | URL |
+|---------|-----|
+| **Frontend** | https://frontend-xi-eight-q41ejvqmro.vercel.app |
+| **Backend** | https://backend-indol-chi-55.vercel.app |
 
 ## CORS Resolution
 
@@ -22,7 +19,7 @@ CORS was resolved by using **Vercel alias domains** as the stable reference:
 - Frontend `vercel.json` rewrite + VITE_API_URL/SOCKET_URL point to backend alias URL
 - Test files use frontend alias for Vercel rewrite routing
 
-**CORS verified:** `Access-Control-Allow-Origin: https://nc-mulia-frontend-dzakysyaam-dzakysyaams-projects.vercel.app`
+**CORS verified (production):** `Access-Control-Allow-Origin: https://frontend-xi-eight-q41ejvqmro.vercel.app`
 
 ## All 26 Evidence Points: PASS
 
@@ -68,9 +65,17 @@ Health:          {"success":true,"message":"OK"} ✓
 
 ## Rollback
 ```bash
-vercel rollback nc-mulia-backend-dzakysyaam-dzakysyaams-projects.vercel.app
-vercel rollback nc-mulia-frontend-dzakysyaam-dzakysyaams-projects.vercel.app
+vercel rollback backend-indol-chi-55.vercel.app
+vercel rollback frontend-xi-eight-q41ejvqmro.vercel.app
 ```
 
-## Next Step: Production Deployment
-User must write `I-APPROVE-PRODUCTION` to trigger production deployment.
+## Deployed: 2026-08-04 12:42 UTC+7
+
+## Final Smoke Test (Production)
+```
+Backend CORS:     Access-Control-Allow-Origin: https://frontend-xi-eight-q41ejvqmro.vercel.app ✓
+Backend Creds:    Access-Control-Allow-Credentials: true ✓
+Frontend index:   200 ✓
+Rewrite /api/*:  200 ✓
+Health:          {"success":true,"message":"OK"} ✓
+```
