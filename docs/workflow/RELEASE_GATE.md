@@ -4,13 +4,16 @@ STATUS: DEPLOYED_TO_PRODUCTION
 ## Production Deployment Summary
 
 **Branch:** `fix/nc-mulia-system-hardening`
-**Final Commit:** `ae8c18b`
+**Final Commit:** `6669cbf`
 **Date:** 2026-08-04
-**Deployed:** 2026-08-04T05:42:00Z
+**Deployed:** 2026-08-04T07:54:00Z
 
 ## Production URLs
-- **Frontend:** https://frontend-xi-eight-q41ejvqmro.vercel.app
-- **Backend:** https://backend-indol-chi-55.vercel.app
+- **Frontend:** https://nc-mulia.vercel.app
+- **Backend API:** https://nc-mulia-api.vercel.app
+
+## CORS (Production)
+`Access-Control-Allow-Origin: https://nc-mulia.vercel.app` + `Credentials: true`
 
 ## CORS (Production)
 `Access-Control-Allow-Origin: https://frontend-xi-eight-q41ejvqmro.vercel.app` + `Credentials: true`

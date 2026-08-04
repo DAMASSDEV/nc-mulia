@@ -1,17 +1,17 @@
 # NC MULIA Deployment Progress
-Updated at: 2026-08-04T05:42:00.000Z
+Updated at: 2026-08-04T07:54:00.000Z
 Overall percentage: 100%
 Completed gates: 26/26
 Current phase: DEPLOYED_TO_PRODUCTION
-Elapsed: ~6 hours
+Elapsed: ~7 hours
 Status: DEPLOYED_TO_PRODUCTION
 
 ## Production URLs
-- **Frontend:** https://frontend-xi-eight-q41ejvqmro.vercel.app
-- **Backend:** https://backend-indol-chi-55.vercel.app
+- **Frontend:** https://nc-mulia.vercel.app
+- **Backend API:** https://nc-mulia-api.vercel.app
 
 ## CORS (Production)
-`Access-Control-Allow-Origin: https://frontend-xi-eight-q41ejvqmro.vercel.app` + `Credentials: true`
+`Access-Control-Allow-Origin: https://nc-mulia.vercel.app` + `Credentials: true`
 
 ## 26-Point Evidence (All PASS — Production Verified)
 

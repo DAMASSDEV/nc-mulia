@@ -7,8 +7,8 @@
 
 | Service | URL |
 |---------|-----|
-| **Frontend** | https://frontend-xi-eight-q41ejvqmro.vercel.app |
-| **Backend** | https://backend-indol-chi-55.vercel.app |
+| **Frontend** | https://nc-mulia.vercel.app |
+| **Backend API** | https://nc-mulia-api.vercel.app |
 
 ## CORS Resolution
 
@@ -19,7 +19,7 @@ CORS was resolved by using **Vercel alias domains** as the stable reference:
 - Frontend `vercel.json` rewrite + VITE_API_URL/SOCKET_URL point to backend alias URL
 - Test files use frontend alias for Vercel rewrite routing
 
-**CORS verified (production):** `Access-Control-Allow-Origin: https://frontend-xi-eight-q41ejvqmro.vercel.app`
+**CORS verified (production):** `Access-Control-Allow-Origin: https://nc-mulia.vercel.app`
 
 ## All 26 Evidence Points: PASS
 
