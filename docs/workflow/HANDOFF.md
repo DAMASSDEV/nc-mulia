@@ -3,7 +3,28 @@
 
 ## STATUS: READY_FOR_PRODUCTION_APPROVAL
 
-## 26-Point Evidence Summary (All PASS)
+## Final Commit & Preview URLs
+
+| Item | Value |
+|------|-------|
+| **Branch** | `fix/nc-mulia-system-hardening` |
+| **Commit** | `b162b3a` — fix: update test URLs to use stable Vercel alias domains |
+| **Frontend Preview** | https://nc-mulia-frontend-dzakysyaam-dzakysyaams-projects.vercel.app |
+| **Backend Preview** | https://nc-mulia-backend-dzakysyaam-dzakysyaams-projects.vercel.app |
+| **Backend direct** | https://nc-mulia-backend-r2iubjcmn-dzakysyaams-projects.vercel.app |
+
+## CORS Resolution
+
+CORS was resolved by using **Vercel alias domains** as the stable reference:
+- Frontend: `nc-mulia-frontend-dzakysyaam-dzakysyaams-projects.vercel.app` (alias)
+- Backend: `nc-mulia-backend-dzakysyaam-dzakysyaams-projects.vercel.app` (alias)
+- Backend `FRONTEND_URL` env var set to frontend alias URL
+- Frontend `vercel.json` rewrite + VITE_API_URL/SOCKET_URL point to backend alias URL
+- Test files use frontend alias for Vercel rewrite routing
+
+**CORS verified:** `Access-Control-Allow-Origin: https://nc-mulia-frontend-dzakysyaam-dzakysyaams-projects.vercel.app`
+
+## All 26 Evidence Points: PASS
 
 | # | Gate | Result |
 |---|------|--------|
@@ -17,11 +38,11 @@
 | 8 | User E2E | PASS — 16/16 |
 | 9 | Targeted 8 tests | PASS — 8/8 |
 | 10 | Preview smoke test | PASS |
-| 11 | Frontend Preview URL | PASS |
-| 12 | Backend Preview URL | PASS |
+| 11 | Frontend Preview URL | PASS — HTTP 200 |
+| 12 | Backend Preview URL | PASS — HTTP 200 |
 | 13 | Railway MySQL | PASS |
 | 14 | Prisma migration | PASS |
-| 15 | CORS & cookie | PASS |
+| 15 | CORS & cookie | PASS — origin matches |
 | 16 | RBAC | PASS |
 | 17 | Cart & checkout | PASS |
 | 18 | Membership & discount | PASS |
@@ -34,35 +55,22 @@
 | 25 | Rollback plan | READY |
 | 26 | Env var checklist | PASS |
 
-## Preview URLs
-- **Frontend:** https://frontend-xi-eight-q41ejvqmro.vercel.app
-- **Backend:** https://backend-indol-chi-55.vercel.app
+## Smoke Test (Final)
+```
+Backend CORS:     Access-Control-Allow-Origin: https://nc-mulia-frontend-dzakysyaam-dzakysyaams-projects.vercel.app ✓
+Backend Creds:    Access-Control-Allow-Credentials: true ✓
+Products API:    200 ✓
+Locations API:   200 ✓
+Frontend index:  200 ✓
+Rewrite /api/*:  200 ✓
+Health:          {"success":true,"message":"OK"} ✓
+```
 
-## Bugs Fixed This Session
-
-### Admin E2E Rate Limit Fix
-- **Root cause:** 22 tests each called `loginAsAdmin()` — 22 login requests exceeded 20/15min rate limit
-- **Fix:** Refactored `admin.spec.ts` to use shared `test.beforeEach` login — 1 login per test run instead of 1 per test
-
-### Admin Consultation Selector Fix
-- **Root cause:** `getByText(/pending/i)` matched 10 elements (button + 9 status badges)
-- **Fix:** Changed to `getByRole('button', { name: /pending/i })` — targets only the tab button
-
-## Files Changed This Session
-
-| File | Change |
-|------|--------|
-| `apps/frontend/tests/admin.spec.ts` | Added shared `beforeEach` login, changed `pending` selector to role-based |
-| `docs/workflow/RELEASE_GATE.md` | Updated with 26-point evidence, env checklist, rollback plan |
-| `docs/workflow/PROGRESS.md` | Updated with 26-point evidence |
-| `docs/workflow/HANDOFF.md` | Updated with final session summary |
+## Rollback
+```bash
+vercel rollback nc-mulia-backend-dzakysyaam-dzakysyaams-projects.vercel.app
+vercel rollback nc-mulia-frontend-dzakysyaam-dzakysyaams-projects.vercel.app
+```
 
 ## Next Step: Production Deployment
 User must write `I-APPROVE-PRODUCTION` to trigger production deployment.
-
-## Key Files
-```
-docs/workflow/RELEASE_GATE.md    — Final release gate (READ FOR PRODUCTION)
-docs/workflow/PROGRESS.md        — Auto-updated progress
-docs/workflow/CURRENT_TASK.md    — Current task state
-```

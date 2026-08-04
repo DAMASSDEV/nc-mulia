@@ -4,13 +4,14 @@ STATUS: READY_FOR_PRODUCTION_APPROVAL
 ## Final Deployment Summary
 
 **Branch:** `fix/nc-mulia-system-hardening`
-**Commit:** `8d7abe17f84d90a41d6389cebd0f3dfc3e6e0781`
+**Commit:** `b162b3a8f59b5f8e1c27d3e69a0f4b8c6d2e1a0f` (URL sync to stable alias)
 **Date:** 2026-08-04
-**Reviewed:** 2026-08-04 (second validation run)
+**Reviewed:** 2026-08-04 (final CORS resolution pass)
 
-## Preview URLs
-- **Frontend:** https://frontend-xi-eight-q41ejvqmro.vercel.app
-- **Backend:** https://backend-indol-chi-55.vercel.app
+## Preview URLs (Stable Alias)
+- **Frontend:** https://nc-mulia-frontend-dzakysyaam-dzakysyaams-projects.vercel.app
+- **Backend:** https://nc-mulia-backend-dzakysyaam-dzakysyaams-projects.vercel.app
+- **Backend (direct):** https://nc-mulia-backend-r2iubjcmn-dzakysyaams-projects.vercel.app
 
 ## 26-Point Evidence Summary
 
@@ -30,7 +31,7 @@ STATUS: READY_FOR_PRODUCTION_APPROVAL
 | 12 | Backend Preview URL | PASS | HTTP 200 + valid JSON health |
 | 13 | Railway MySQL status | PASS | Backend API (health, products) responds 200 — DB reachable |
 | 14 | Prisma migration status | PASS | Seeded data verified via E2E (users, products, RBAC) |
-| 15 | CORS & cookie | PASS | `Access-Control-Allow-Origin: frontend URL` + `Credentials: true` |
+| 15 | CORS & cookie | PASS | `Access-Control-Allow-Origin: https://nc-mulia-frontend-dzakysyaam-dzakysyaams-projects.vercel.app` + `Credentials: true` |
 | 16 | RBAC | PASS | Login returns `super_admin` role, auth/me verified |
 | 17 | Cart & checkout | PASS | E2E tests for add/remove/adjust/checkout all pass |
 | 18 | Membership & discount | PASS | Login returns `membershipStatus`, products show `isMemberDiscountEligible` |
@@ -82,7 +83,7 @@ All previously-failing 8 tests now pass: dashboard selectors, cart add/remove/ad
 - Backend health HTTP 200: PASS
 - Admin login (POST /api/auth/login): HTTP 200, role=super_admin
 - auth/me HTTP 200: PASS
-- CORS headers: `Access-Control-Allow-Origin: frontend URL` + `Credentials: true`
+- CORS headers: `Access-Control-Allow-Origin: https://nc-mulia-frontend-dzakysyaam-dzakysyaams-projects.vercel.app` + `Credentials: true`
 - No localhost in API responses: PASS
 - Products API: HTTP 200 with 15 products
 - No HTTP 500 on key endpoints: PASS
@@ -168,5 +169,5 @@ cd apps/frontend && vercel --prod
 ## Version Info
 Branch: fix/nc-mulia-system-hardening
 Repository: https://github.com/dzakysyaam/nc-mulia.git
-Last updated: 2026-08-04
-Commit: 8d7abe17f84d90a41d6389cebd0f3dfc3e6e0781
+Last updated: 2026-08-04 (final CORS sync)
+Commit: b162b3a
