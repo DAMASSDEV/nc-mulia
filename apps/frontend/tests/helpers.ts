@@ -10,7 +10,7 @@ import { type Page, expect } from '@playwright/test';
 /** Hardcoded API base for Preview URL (used by helpers that run API calls).
  *  The frontend runs on Vercel with no server-side API proxy for ctx.request,
  *  so we must use the backend Preview URL directly. */
-const API_BASE = process.env.PLAYWRIGHT_API_BASE || 'https://backend-indol-chi-55.vercel.app';
+const API_BASE = process.env.PLAYWRIGHT_API_BASE || 'https://nc-mulia-backend-56y17iyg7-dzakysyaams-projects.vercel.app';
 
 /** Module-level real product ID cache. Reset per test via resetProductCache. */
 let _realProductIds: string[] = [];
@@ -203,7 +203,7 @@ export async function dismissToasts(page: Page): Promise<void> {
 }
 
 /** Backend URL — Vercel routes /api/* from the frontend domain to the backend. */
-const BACKEND_URL = 'https://frontend-xi-eight-q41ejvqmro.vercel.app';
+const BACKEND_URL = 'https://nc-mulia-frontend-ehi5p084o-dzakysyaams-projects.vercel.app';
 
 /* ─── Cart Helpers ─────────────────────────────────────────── */
 
