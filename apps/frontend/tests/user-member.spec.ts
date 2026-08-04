@@ -114,7 +114,7 @@ test.describe('Member product browsing', () => {
           body: JSON.stringify({ productId: realIds[0], quantity: 1 }),
         });
       }
-    }, { backendUrl: 'https://nc-mulia-frontend-dzakysyaam-dzakysyaams-projects.vercel.app', firstId: 'prod_lqopdn1tt' });
+    }, { backendUrl: 'https://nc-mulia.vercel.app', firstId: 'prod_lqopdn1tt' });
 
     // Navigate to cart to verify items are there
     await page.goto('/keranjang', { waitUntil: 'networkidle' });
@@ -165,7 +165,7 @@ test.describe('Member cart management', () => {
             body: JSON.stringify({ productId: realIds[0], quantity: 1 }),
           });
         }
-      }, { backendUrl: 'https://nc-mulia-frontend-dzakysyaam-dzakysyaams-projects.vercel.app' });
+      }, { backendUrl: 'https://nc-mulia.vercel.app' });
       await page.reload({ waitUntil: 'networkidle' });
       await page.waitForTimeout(1_000);
     }
@@ -226,7 +226,7 @@ test.describe('Member cart management', () => {
             body: JSON.stringify({ productId: realIds[0], quantity: 1 }),
           });
         }
-      }, { backendUrl: 'https://nc-mulia-frontend-dzakysyaam-dzakysyaams-projects.vercel.app' });
+      }, { backendUrl: 'https://nc-mulia.vercel.app' });
       await page.reload({ waitUntil: 'networkidle' });
       await page.waitForTimeout(1_000);
     }
