@@ -13,6 +13,7 @@ const envSchema = z.object({
   SEED_ADMIN_PASSWORD: z.string().min(8).optional(),
 });
 
+/** Validates all required environment variables at startup. */
 function validate(): z.infer<typeof envSchema> {
   const result = envSchema.safeParse(process.env);
   if (!result.success) {
