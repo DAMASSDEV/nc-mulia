@@ -1,3 +1,4 @@
+// NC Mulia Main Application Entry
 import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Navbar } from './components/layout/Navbar';
