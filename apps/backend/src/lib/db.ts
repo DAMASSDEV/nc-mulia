@@ -10,6 +10,9 @@ function getDatabaseUrl() {
   const envUrl = process.env.DATABASE_URL;
   if (!envUrl || envUrl.startsWith('file:')) {
     let dbPath = path.resolve(process.cwd(), 'prisma', 'dev.db');
+    if (envUrl && envUrl.startsWith('file:')) {
+      dbPath = path.resolve(process.cwd(), 'prisma', envUrl.substring(5));
+    }
     
     // On Vercel, the filesystem is read-only except for /tmp.
     // SQLite requires a writable directory for journal/lock files.
