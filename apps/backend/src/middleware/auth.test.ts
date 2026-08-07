@@ -108,29 +108,26 @@ describe('requireUser', () => {
     expect(next).toHaveBeenCalled();
   });
 
-  it('returns 403 when role is "admin"', () => {
+  it('calls next() when role is "admin"', () => {
     const req = { user: { userId: 'a1', role: 'admin' } } as any;
-    const res = mockRes();
     const next = mockNext();
-    requireUser(req, res as any, next);
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(res.json).toHaveBeenCalledWith({ success: false, message: 'Akses hanya untuk pengguna.' });
+    requireUser(req, {} as any, next);
+    expect(next).toHaveBeenCalled();
   });
 
-  it('returns 403 when role is "super_admin"', () => {
+  it('calls next() when role is "super_admin"', () => {
     const req = { user: { userId: 'sa1', role: 'super_admin' } } as any;
-    const res = mockRes();
     const next = mockNext();
-    requireUser(req, res as any, next);
-    expect(res.status).toHaveBeenCalledWith(403);
+    requireUser(req, {} as any, next);
+    expect(next).toHaveBeenCalled();
   });
 
-  it('returns 403 when req.user is undefined', () => {
+  it('returns 401 when req.user is undefined', () => {
     const req = { user: undefined } as any;
     const res = mockRes();
     const next = mockNext();
     requireUser(req, res as any, next);
-    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.status).toHaveBeenCalledWith(401);
   });
 });
 

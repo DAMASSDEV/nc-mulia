@@ -66,13 +66,13 @@ export default function AdminAuditLog({ user, onLogout }: AuditPageProps) {
       const res = await fetch(`/api/admin/audit?${params}`, { credentials: 'include' });
       const json = await res.json();
       if (json.success) {
-        setRecords(json.records);
-        setPagination(json.pagination);
+        setRecords(json.records || json.data?.records || []);
+        setPagination(json.pagination || json.data?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 });
       }
     } catch {} finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchRecords(); }, [moduleFilter]);
+  useEffect(() => { fetchRecords(1); }, [moduleFilter, search]);
 
   const filteredRecords = records.filter(r => {
     if (!search) return true;

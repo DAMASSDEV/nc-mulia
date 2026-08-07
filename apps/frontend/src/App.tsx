@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { AuthModals } from './components/layout/AuthModals';
@@ -40,6 +40,7 @@ function AdminRouteGuard({ user, loading, children }: { user: User | null; loadi
 function UserRouteGuard({ user, loading, children }: { user: User | null; loading: boolean; children: React.ReactNode }) {
   if (loading) return null;
   if (!user) return <Navigate to="/" replace />;
+  if (user.role === 'admin' || user.role === 'super_admin') return <Navigate to="/admin" replace />;
   return <>{children}</>;
 }
 
@@ -50,6 +51,7 @@ function NavbarWithCart({ user, logout, openLogin }: { user: User | null; logout
 
 function App() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -57,6 +59,7 @@ function App() {
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [registerForm, setRegisterForm] = useState({ name: '', email: '', phone: '', password: '' });
   const [authError, setAuthError] = useState('');
+  const [authSuccessMessage, setAuthSuccessMessage] = useState('');
   const [isAuthLoading, setIsAuthLoading] = useState(false);
 
   useEffect(() => {
@@ -70,6 +73,7 @@ function App() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
+    setAuthSuccessMessage('');
     setIsAuthLoading(true);
     try {
       const res = await api.login({ email: loginForm.email, password: loginForm.password });
@@ -77,6 +81,9 @@ function App() {
         setUser(res.data);
         setIsLoginOpen(false);
         setLoginForm({ email: '', password: '' });
+        if (res.data.role === 'admin' || res.data.role === 'super_admin') {
+          navigate('/admin');
+        }
       } else {
         setAuthError(res.message || 'Login gagal.');
       }
@@ -90,6 +97,7 @@ function App() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
+    setAuthSuccessMessage('');
     setIsAuthLoading(true);
     try {
       const res = await api.register({
@@ -103,6 +111,7 @@ function App() {
         setRegisterForm({ name: '', email: '', phone: '', password: '' });
         setIsLoginOpen(true);
         setLoginForm((f) => ({ ...f, email: registerForm.email, password: '' }));
+        setAuthSuccessMessage('Registrasi berhasil! Silakan masuk menggunakan email dan password Anda.');
         setAuthError('');
       } else {
         setAuthError(res.message || 'Registrasi gagal.');
@@ -170,6 +179,7 @@ function App() {
             handleRegister={handleRegister}
             isLoading={isAuthLoading}
             error={authError}
+            successMessage={authSuccessMessage}
           />
         </CartProvider>
       )}

@@ -22,7 +22,7 @@ export class CartService {
         const discountPercentage = isMember && product.isMemberDiscountEligible ? discountRate * 100 : 0;
         const discountAmount = Math.round(price * discountPercentage / 100);
         const finalUnitPrice = price - discountAmount;
-        return { productId: product.id, productName: product.name, price, discountPercentage, discountAmount, finalUnitPrice };
+        return { productId: product.id, productName: product.name, imageUrl: product.imageUrl, price, discountPercentage, discountAmount, finalUnitPrice };
       });
   }
 
@@ -37,6 +37,7 @@ export class CartService {
     return items.map(i => ({
       productId: i.productId,
       productName: i.productName,
+      imageUrl: i.imageUrl,
       quantity: qtyMap.get(i.productId) ?? 1,
       basePrice: i.price,
       discountPercentage: i.discountPercentage,

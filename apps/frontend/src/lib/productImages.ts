@@ -86,5 +86,5 @@ export function getProductImage(productName: string): string {
   // F1 Express Bar
   if (n.includes("express bar")) return `${MENU}f1-express-bar.png`;
 
-  return `${MENU}generic-product.svg`;
+  return `${MENU}formula-1-vanilla.png`;
 }

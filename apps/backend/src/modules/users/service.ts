@@ -21,14 +21,17 @@ export class UsersService {
     const limit = Math.min(100, Math.max(1, query.limit ?? 20));
 
     const where: Record<string, unknown> = {};
-    if (query.search) {
+    if (query.search && query.search !== 'undefined') {
       where.OR = [
         { name: { contains: query.search, mode: 'insensitive' } },
         { email: { contains: query.search, mode: 'insensitive' } },
       ];
     }
-    if (query.role) {
-      where.userRoles = { some: { role: { slug: query.role } } };
+    if (query.role && query.role !== 'undefined') {
+      where.OR = [
+        { role: { equals: query.role, mode: 'insensitive' } },
+        { userRoles: { some: { role: { slug: query.role } } } },
+      ];
     }
 
     const [users, total] = await Promise.all([
@@ -45,9 +48,11 @@ export class UsersService {
     return {
       users: users.map(u => {
         const roleSlugs = u.userRoles.map(ur => ur.role.slug);
+        const roles = roleSlugs.length > 0 ? roleSlugs : [u.role.toLowerCase()];
         return {
           id: u.id, name: u.name, email: u.email, phone: u.phone,
-          roles: roleSlugs,
+          roles: roles,
+          role: roles[0] || u.role.toLowerCase(),
           membershipStatus: u.membershipStatus.toLowerCase() as 'regular' | 'member',
           membershipExpiresAt: u.membershipExpiresAt?.toISOString(),
           isActive: u.isActive, createdAt: u.createdAt.toISOString(),

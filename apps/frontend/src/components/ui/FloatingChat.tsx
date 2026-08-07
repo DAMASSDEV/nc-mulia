@@ -163,8 +163,8 @@ export function FloatingChat({ user }: FloatingChatProps) {
     setCreating(false);
   }, [user, creating, resetInactivityTimer]);
 
-  // Hide for guests and admins
-  if (!user || user.role === 'admin') return null;
+  // Hide only for admin users
+  if (user && (user.role === 'admin' || user.role === 'super_admin')) return null;
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
@@ -219,20 +219,29 @@ export function FloatingChat({ user }: FloatingChatProps) {
                 <div className="w-14 h-14 rounded-full bg-brand-primary-soft flex items-center justify-center">
                   <MessageSquare className="w-7 h-7 text-brand-primary" />
                 </div>
-                <p className="text-sm text-foreground-muted text-center">
-                  {conversations.length > 0
-                    ? 'Pilih percakapan atau mulai baru'
-                    : 'Mulai percakapan baru dengan tim NC MULIA'}
-                </p>
+                {!user ? (
+                  <div className="text-center space-y-3">
+                    <p className="text-sm font-semibold text-foreground">Selamat Datang di NC MULIA</p>
+                    <p className="text-xs text-foreground-muted">Silakan masuk ke akun Anda untuk memulai Live Chat dengan nutrisionis kami.</p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm text-foreground-muted text-center">
+                      {conversations.length > 0
+                        ? 'Pilih percakapan atau mulai baru'
+                        : 'Mulai percakapan baru dengan tim NC MULIA'}
+                    </p>
 
-                <button
-                  onClick={() => setView('greeting')}
-                  disabled={creating}
-                  className="w-full py-3 bg-brand-primary text-white rounded-xl text-sm font-semibold hover:bg-brand-primary-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Mulai Percakapan Baru
-                </button>
+                    <button
+                      onClick={() => setView('greeting')}
+                      disabled={creating}
+                      className="w-full py-3 bg-brand-primary text-white rounded-xl text-sm font-semibold hover:bg-brand-primary-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Mulai Percakapan Baru
+                    </button>
+                  </>
+                )}
 
                 {/* Existing conversations */}
                 {conversations.length > 0 && (

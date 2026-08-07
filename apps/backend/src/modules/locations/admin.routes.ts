@@ -6,11 +6,11 @@ import {
   setLocationStatus,
   setLocationPrimary,
 } from './controller.js';
-import { requirePermission } from '../../middleware/auth.js';
+import { authMiddleware, requirePermission } from '../../middleware/auth.js';
 
 const router = Router();
 
-router.use(requirePermission('locations:read'));
+router.use(authMiddleware, requirePermission('locations:read'));
 
 router.post('/', requirePermission('locations:create'), createLocation);
 router.put('/:id', requirePermission('locations:update'), updateLocation);

@@ -142,17 +142,22 @@ export default function AdminChatPage({ user, onLogout }: AdminChatProps) {
                 </div>
 
                 <div className="flex-1 overflow-y-auto space-y-3 mb-3">
-                  {messages.map(msg => (
-                    <div key={msg.id} className={`flex ${msg.senderRole === 'admin' ? 'justify-start' : 'justify-end'}`}>
-                      <div className={`max-w-[75%] rounded-xl px-4 py-2.5 text-sm ${msg.senderRole === 'admin' ? 'bg-surface-secondary text-foreground' : 'bg-brand-primary text-white'}`}>
-                        <div className={`text-[10px] opacity-60 mb-0.5 ${msg.senderRole === 'admin' ? 'text-foreground-subtle' : ''}`}>{msg.senderName}</div>
-                        <div className="leading-relaxed">{msg.message}</div>
-                        <div className={`text-[10px] mt-1 ${msg.senderRole === 'admin' ? 'text-foreground-subtle' : 'opacity-60'}`}>
-                          {new Date(msg.createdAt).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}
+                  {messages.map(msg => {
+                    const isAdminMsg = msg.senderRole === 'admin';
+                    return (
+                      <div key={msg.id} className={`flex ${isAdminMsg ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[75%] rounded-xl px-4 py-2.5 text-sm ${isAdminMsg ? 'bg-brand-primary text-white' : 'bg-surface-secondary text-foreground'}`}>
+                          <div className={`text-[10px] font-medium mb-0.5 ${isAdminMsg ? 'text-white/80' : 'text-foreground-subtle'}`}>
+                            {isAdminMsg ? 'Admin' : (msg.senderName || activeConv.customerName)}
+                          </div>
+                          <div className="leading-relaxed">{msg.message}</div>
+                          <div className={`text-[10px] mt-1 ${isAdminMsg ? 'text-white/70' : 'text-foreground-subtle'}`}>
+                            {new Date(msg.createdAt).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   <div ref={messagesEndRef} />
                 </div>
 

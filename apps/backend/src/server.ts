@@ -7,7 +7,7 @@ import { env } from './config/env.js';
 
 async function main() {
   await prisma.$connect();
-  console.log('MySQL connected');
+  console.log('SQLLite Connected');
 
   const httpServer = createServer(app);
   initSocket(httpServer);

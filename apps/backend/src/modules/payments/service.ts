@@ -111,7 +111,9 @@ export class PaymentsService {
     const page = Math.max(1, query.page ?? 1);
     const limit = Math.min(100, Math.max(1, query.limit ?? 20));
     const where: Record<string, string> = {};
-    if (query.status) where.status = query.status.toUpperCase();
+    if (query.status && query.status !== 'undefined' && query.status !== 'all' && query.status !== 'ALL') {
+      where.status = query.status.toUpperCase();
+    }
 
     const [payments, total] = await Promise.all([
       prisma.payment.findMany({ where, include: { user: { select: { id: true, name: true, email: true } } }, skip: (page - 1) * limit, take: limit, orderBy: { createdAt: 'desc' } }),

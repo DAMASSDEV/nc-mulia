@@ -21,6 +21,9 @@ const createSchema = z.object({
   price: z.number().min(0),
   stock: z.number().int().min(0).optional(),
   imageUrl: z.string().optional(),
+  isAvailable: z.boolean().optional(),
+  isMemberDiscountEligible: z.boolean().optional(),
+  isActive: z.boolean().optional(),
 });
 
 const updateSchema = createSchema.partial();

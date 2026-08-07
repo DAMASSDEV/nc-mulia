@@ -3,65 +3,74 @@ import { productsApi } from '../lib/api';
 import { useCart } from '../contexts/CartContext';
 import type { Product, User } from '../lib/api';
 import { herbalifeProducts } from '../data/herbalife-products';
+import { getProductImage } from '../lib/productImages';
 
 interface ProductsPageProps { user?: User | null; }
 
 const CATEGORIES = ['All', 'Shake', 'Tea', 'Bar', 'Suplemen', 'Program'];
 
+function resolveProductImage(name: string, imageUrl?: string | null): string {
+  if (imageUrl && !imageUrl.includes('placehold.co') && !imageUrl.includes('placeholder')) {
+    return imageUrl;
+  }
+  return getProductImage(name);
+}
+
 function mapStaticProduct(p: (typeof herbalifeProducts)[0]): Product {
   const base = p.basePrice;
-  const img = p.image || `https://placehold.co/400x300/DDF4EA/087F5B?text=${encodeURIComponent(p.name)}`;
   return {
     id: p.id,
     name: p.name,
     description: p.description,
     category: p.category,
-    imageUrl: img,
+    imageUrl: resolveProductImage(p.name, p.image),
     isAvailable: true,
     basePrice: base,
     pricing: { discountPercentage: 0, discountAmount: 0, finalPrice: base, membershipApplied: false },
   };
 }
 
-function formatPrice(n: number) {
-  return `Rp ${n.toLocaleString('id-ID')}`;
+function formatPrice(n: number | undefined | null) {
+  return `Rp ${(n ?? 0).toLocaleString('id-ID')}`;
 }
 
 export default function ProductsPage({ user }: ProductsPageProps) {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
-  const [products, setProducts] = useState<Product[]>(() => {
-    // Default to static data — always show products even without login
-    return herbalifeProducts
-      .filter(p => category === 'All' || p.category === category)
-      .map(mapStaticProduct);
-  });
+  const [rawProducts, setRawProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
+  const [selectedDetailProduct, setSelectedDetailProduct] = useState<Product | null>(null);
   const { addToCart, isInCart, isLoading: cartLoading } = useCart();
 
   useEffect(() => {
-    // Try to fetch from API for dynamic DB data (logged-in users get membership pricing)
     setLoading(true);
-    productsApi.list({ category: category === 'All' ? undefined : category }).then(res => {
+    productsApi.list().then(res => {
       if (res.success && res.data && res.data.length > 0) {
-        setProducts(res.data);
+        setRawProducts(res.data.map(p => ({
+          ...p,
+          isAvailable: true,
+          basePrice: p.basePrice ?? p.price ?? 0,
+          imageUrl: resolveProductImage(p.name, p.imageUrl),
+        })));
+      } else {
+        setRawProducts(herbalifeProducts.map(mapStaticProduct));
       }
-      // If API fails or returns empty, keep static data
     }).catch(() => {
-      // API call failed (e.g. not logged in), keep static data
+      setRawProducts(herbalifeProducts.map(mapStaticProduct));
     }).finally(() => {
       setLoading(false);
     });
-  }, [category]);
+  }, []);
 
-  const filtered = products.filter(p =>
-    search === '' || p.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const displayedProducts = (rawProducts.length > 0 ? rawProducts : herbalifeProducts.map(mapStaticProduct))
+    .map(p => ({ ...p, isAvailable: true }))
+    .filter(p => category === 'All' || p.category === category)
+    .filter(p => search === '' || p.name.toLowerCase().includes(search.toLowerCase()));
 
   const handleAdd = (product: Product) => {
     const final = product.pricing?.finalPrice ?? product.basePrice;
-    addToCart({ id: product.id, name: product.name, price: final });
+    addToCart({ id: product.id, name: product.name, price: final, imageUrl: product.imageUrl });
     setAddedIds(prev => new Set([...prev, product.id]));
     setTimeout(() => setAddedIds(prev => { const n = new Set(prev); n.delete(product.id); return n; }), 2000);
   };
@@ -75,7 +84,7 @@ export default function ProductsPage({ user }: ProductsPageProps) {
           <p className="text-slate-600 mt-2">Informasi produk Herbalife , terus 100% Original</p>
         </div>
         <div className="text-right">
-          <div className="text-sm text-emerald-600">{filtered.length} Produk</div>
+          <div className="text-sm text-emerald-600">{displayedProducts.length} Produk</div>
         </div>
       </div>
 
@@ -102,11 +111,11 @@ export default function ProductsPage({ user }: ProductsPageProps) {
 
       {loading ? (
         <div className="flex justify-center py-24"><div className="w-8 h-8 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" /></div>
-      ) : filtered.length === 0 ? (
+      ) : displayedProducts.length === 0 ? (
         <div className="text-center py-16 text-slate-400">Tidak ada produk yang cocok.</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filtered.map(product => {
+          {displayedProducts.map(product => {
             const inCart = isInCart(product.id);
             const justAdded = addedIds.has(product.id);
             const pricing = product.pricing ?? { discountPercentage: 0, discountAmount: 0, finalPrice: product.basePrice, membershipApplied: false };
@@ -114,11 +123,11 @@ export default function ProductsPage({ user }: ProductsPageProps) {
             const basePrice = product.basePrice;
             const finalPrice = pricing.finalPrice;
             return (
-              <div key={product.id} className="bg-white rounded-3xl overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow border border-slate-200/80">
-                <div className="relative">
+              <div key={product.id} className="bg-white rounded-3xl overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow border border-slate-200/80 group">
+                <div className="relative cursor-pointer" onClick={() => setSelectedDetailProduct(product)}>
                   {product.imageUrl ? (
                     <div className="w-full h-60 bg-[#F5FAF7] flex items-center justify-center overflow-hidden border-b border-slate-200 shadow-sm">
-                      <img src={product.imageUrl} alt={product.name} className="max-w-full max-h-full object-contain" />
+                      <img src={product.imageUrl} alt={product.name} className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300" />
                     </div>
                   ) : (
                     <div className="w-full h-60 bg-emerald-50 flex items-center justify-center">
@@ -135,7 +144,9 @@ export default function ProductsPage({ user }: ProductsPageProps) {
                   )}
                 </div>
                 <div className="p-6 flex flex-col flex-1">
-                  <div className="font-semibold tracking-tight text-lg leading-tight mb-1">{product.name}</div>
+                  <div className="font-semibold tracking-tight text-lg leading-tight mb-1 cursor-pointer hover:text-emerald-700 transition-colors" onClick={() => setSelectedDetailProduct(product)}>
+                    {product.name}
+                  </div>
                   {hasDiscount ? (
                     <div className="mb-1">
                       <span className="text-slate-400 line-through text-sm">{formatPrice(basePrice)}</span>
@@ -143,22 +154,27 @@ export default function ProductsPage({ user }: ProductsPageProps) {
                     </div>
                   ) : null}
                   <div className="text-emerald-700 text-2xl font-semibold mb-3">{formatPrice(finalPrice)}</div>
-                  <p className="text-sm text-slate-600 mb-6 flex-1">{product.description}</p>
+                  <p className="text-sm text-slate-600 mb-4 flex-1 line-clamp-2">{product.description}</p>
+
+                  <button
+                    onClick={() => setSelectedDetailProduct(product)}
+                    className="text-xs font-semibold text-emerald-700 hover:underline text-left mb-4 inline-flex items-center gap-1"
+                  >
+                    🔍 Lihat Detail Produk
+                  </button>
 
                   {inCart ? (
-                    <div className="w-full bg-emerald-100 text-emerald-700 py-3.5 rounded-2xl text-sm font-medium text-center flex items-center justify-center gap-2">
+                    <div className="w-full bg-emerald-100 text-emerald-700 py-3 rounded-2xl text-sm font-medium text-center flex items-center justify-center gap-2">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                       Sudah di Keranjang
                     </div>
                   ) : justAdded ? (
-                    <div className="w-full bg-emerald-500 text-white py-3.5 rounded-2xl text-sm font-medium text-center">Ditambahkan!</div>
-                  ) : !product.isAvailable ? (
-                    <div className="w-full bg-slate-100 text-slate-400 py-3.5 rounded-2xl text-sm font-medium text-center cursor-not-allowed">Tidak Tersedia</div>
+                    <div className="w-full bg-emerald-500 text-white py-3 rounded-2xl text-sm font-medium text-center font-bold">Ditambahkan!</div>
                   ) : (
                     <button
                       onClick={() => handleAdd(product)}
                       disabled={cartLoading}
-                      className="w-full bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white py-3.5 rounded-2xl text-sm font-medium transition-all"
+                      className="w-full bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white py-3 rounded-2xl text-sm font-bold transition-all shadow-sm hover:shadow-md"
                     >
                       + Tambah ke Keranjang
                     </button>
@@ -167,6 +183,63 @@ export default function ProductsPage({ user }: ProductsPageProps) {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Product Detail Modal */}
+      {selectedDetailProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setSelectedDetailProduct(null)} />
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden z-10 p-6">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
+                Detail Produk · {selectedDetailProduct.category}
+              </span>
+              <button onClick={() => setSelectedDetailProduct(null)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+            </div>
+
+            <div className="w-full h-64 bg-[#F5FAF7] rounded-2xl flex items-center justify-center overflow-hidden mb-4 border border-slate-100">
+              <img src={selectedDetailProduct.imageUrl || ''} alt={selectedDetailProduct.name} className="max-w-full max-h-full object-contain p-2" />
+            </div>
+
+            <h3 className="text-xl font-bold text-slate-900 mb-2">{selectedDetailProduct.name}</h3>
+
+            <div className="mb-4">
+              {selectedDetailProduct.pricing?.membershipApplied && selectedDetailProduct.pricing.discountPercentage > 0 ? (
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl font-bold text-emerald-700">{formatPrice(selectedDetailProduct.pricing.finalPrice)}</span>
+                  <span className="text-slate-400 line-through text-sm">{formatPrice(selectedDetailProduct.basePrice)}</span>
+                  <span className="bg-red-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">Diskon Member -{selectedDetailProduct.pricing.discountPercentage}%</span>
+                </div>
+              ) : (
+                <span className="text-2xl font-bold text-emerald-700">{formatPrice(selectedDetailProduct.basePrice)}</span>
+              )}
+            </div>
+
+            <div className="mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Deskripsi Produk</div>
+              <p className="text-sm text-slate-600 leading-relaxed">{selectedDetailProduct.description}</p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <button onClick={() => setSelectedDetailProduct(null)} className="px-5 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl text-sm font-medium">Tutup</button>
+              {isInCart(selectedDetailProduct.id) ? (
+                <div className="bg-emerald-100 text-emerald-700 px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2">
+                  ✓ Sudah di Keranjang
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    handleAdd(selectedDetailProduct);
+                    setSelectedDetailProduct(null);
+                  }}
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-md"
+                >
+                  + Tambah ke Keranjang
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

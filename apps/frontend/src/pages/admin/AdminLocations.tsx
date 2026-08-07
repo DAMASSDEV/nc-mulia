@@ -62,26 +62,27 @@ function buildDefaultSchedules(sundayClosed = false) {
 }
 
 function buildFormPayload(form: LocationFormData) {
+  const mapsUrl = form.mapsUrl.trim() || `https://maps.google.com/?q=${encodeURIComponent(form.address + ', ' + form.city)}`;
   return {
-    name: form.name,
-    description: form.description || null,
-    placeId: form.placeId || null,
-    address: form.address,
-    city: form.city,
-    province: form.province || 'DKI Jakarta',
-    phone: form.phone || null,
-    email: form.email || null,
-    whatsapp: form.whatsapp || null,
-    mapsUrl: form.mapsUrl,
+    name: form.name.trim(),
+    description: form.description?.trim() || null,
+    placeId: form.placeId?.trim() || null,
+    address: form.address.trim(),
+    city: form.city.trim(),
+    province: form.province?.trim() || 'DKI Jakarta',
+    phone: form.phone?.trim() || null,
+    email: form.email?.trim() || null,
+    whatsapp: form.whatsapp?.trim() || null,
+    mapsUrl: mapsUrl,
     latitude: form.latitude ? parseFloat(form.latitude) : null,
     longitude: form.longitude ? parseFloat(form.longitude) : null,
     isPrimary: form.isPrimary,
     isActive: form.isActive,
     schedules: DAYS.map((day, i) => ({
       day,
-      openTime: form.schedules[day].openTime,
-      closeTime: form.schedules[day].closeTime,
-      isClosed: form.schedules[day].isClosed,
+      openTime: form.schedules[day]?.openTime || '08:00',
+      closeTime: form.schedules[day]?.closeTime || '17:00',
+      isClosed: form.schedules[day]?.isClosed ?? false,
       sortOrder: i,
     })),
   };
@@ -224,8 +225,8 @@ export default function AdminLocations({ user, onLogout }: { user: User; onLogou
   };
 
   const handleSave = async () => {
-    if (!form.name.trim() || !form.address.trim() || !form.city.trim() || !form.mapsUrl.trim()) {
-      setError('Nama, alamat, kota, dan Maps URL wajib diisi.');
+    if (!form.name.trim() || !form.address.trim() || !form.city.trim()) {
+      setError('Nama, alamat, dan kota wajib diisi.');
       return;
     }
     setSaving(true);
@@ -246,7 +247,8 @@ export default function AdminLocations({ user, onLogout }: { user: User; onLogou
         }
         setModalOpen(false);
       } else {
-        setError(d.message || 'Gagal menyimpan.');
+        const errorDetail = d.errors ? Object.values(d.errors).flat().join(', ') : '';
+        setError(errorDetail ? `${d.message}: ${errorDetail}` : (d.message || 'Gagal menyimpan.'));
       }
     } catch {
       setError('Terjadi kesalahan saat menyimpan.');

@@ -34,8 +34,8 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
 }
 
 export function requireUser(req: Request, res: Response, next: NextFunction): void {
-  if (req.user?.role !== 'user') {
-    res.status(403).json({ success: false, message: 'Akses hanya untuk pengguna.' });
+  if (!req.user) {
+    res.status(401).json({ success: false, message: 'Silakan login terlebih dahulu.' });
     return;
   }
   next();

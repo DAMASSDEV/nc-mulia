@@ -45,8 +45,8 @@ export const userApi = {
 
 // ── Products ────────────────────────────────────────────────────────────
 export const productsApi = {
-  list: (p?: { category?: string; search?: string }) => {
-    const q = p ? new URLSearchParams(p as Record<string, string>).toString() : '';
+  list: (p?: { category?: string; search?: string; includeInactive?: string }) => {
+    const q = p ? new URLSearchParams(Object.entries(p).filter(([, v]) => v !== undefined) as [string, string][]).toString() : '';
     return req<Product[]>(`/products${q ? `?${q}` : ''}`);
   },
   getById: (id: string) => req<Product>(`/products/${id}`),
@@ -96,7 +96,11 @@ export const transactionApi = {
     return req<{ transactions: Transaction[]; pagination: PaginationMeta }>(`/transactions${q ? `?${q}` : ''}`);
   },
   listAll: (p?: { page?: number; limit?: number; status?: string }) => {
-    const q = new URLSearchParams(p as Record<string, string>).toString();
+    const params = new URLSearchParams();
+    if (p?.page) params.append('page', String(p.page));
+    if (p?.limit) params.append('limit', String(p.limit));
+    if (p?.status) params.append('status', p.status);
+    const q = params.toString();
     return req<{ transactions: Transaction[]; pagination: PaginationMeta }>(`/transactions/all${q ? `?${q}` : ''}`);
   },
   updateStatus: (id: string, data: { status: string }) =>
@@ -111,7 +115,11 @@ export const paymentApi = {
     req<Payment>(`/payments/${id}/simulate`, { method: 'POST', body: JSON.stringify({ action }) }),
   list: () => req<Payment[]>('/payments'),
   listAll: (p?: { page?: number; limit?: number; status?: string }) => {
-    const q = new URLSearchParams(p as Record<string, string>).toString();
+    const params = new URLSearchParams();
+    if (p?.page) params.append('page', String(p.page));
+    if (p?.limit) params.append('limit', String(p.limit));
+    if (p?.status) params.append('status', p.status);
+    const q = params.toString();
     return req<{ payments: Payment[]; pagination: PaginationMeta }>(`/payments/all${q ? `?${q}` : ''}`);
   },
   cancel: (id: string) => req<Payment>(`/payments/${id}/cancel`, { method: 'POST' }),
@@ -120,7 +128,12 @@ export const paymentApi = {
 // ── Admin ───────────────────────────────────────────────────────────────
 export const adminUsersApi = {
   list: (p?: { search?: string; role?: string; page?: number; limit?: number }) => {
-    const q = new URLSearchParams(p as Record<string, string>).toString();
+    const params = new URLSearchParams();
+    if (p?.search) params.append('search', p.search);
+    if (p?.role) params.append('role', p.role);
+    if (p?.page) params.append('page', p.page.toString());
+    if (p?.limit) params.append('limit', p.limit.toString());
+    const q = params.toString();
     return req<{ users: User[]; pagination: PaginationMeta }>(`/admin/users${q ? `?${q}` : ''}`);
   },
   update: (id: string, d: { name?: string; phone?: string }) =>
@@ -139,7 +152,11 @@ export const statsApi = {
 
 export const adminBmiApi = {
   list: (p?: { page?: number; limit?: number; search?: string }) => {
-    const q = new URLSearchParams(p as Record<string, string>).toString();
+    const params = new URLSearchParams();
+    if (p?.page) params.append('page', String(p.page));
+    if (p?.limit) params.append('limit', String(p.limit));
+    if (p?.search) params.append('search', p.search);
+    const q = params.toString();
     return req<{ records: AdminBmiRecord[]; pagination: PaginationMeta }>(`/bmi${q ? `?${q}` : ''}`);
   },
 };
@@ -150,7 +167,12 @@ export const chatApi = {
     req<ChatConversation>('/chat/conversations', { method: 'POST', body: JSON.stringify(d) }),
   listConversations: () => req<ChatConversation[]>('/chat/conversations'),
   listAllConversations: (p?: { page?: number; limit?: number; status?: string; category?: string }) => {
-    const q = new URLSearchParams(p as Record<string, string>).toString();
+    const params = new URLSearchParams();
+    if (p?.page) params.append('page', String(p.page));
+    if (p?.limit) params.append('limit', String(p.limit));
+    if (p?.status) params.append('status', p.status);
+    if (p?.category) params.append('category', p.category);
+    const q = params.toString();
     return req<{ conversations: ChatConversation[]; pagination: PaginationMeta }>(`/chat/conversations/all${q ? `?${q}` : ''}`);
   },
   getMessages: (id: string) => req<ChatMessage[]>(`/chat/conversations/${id}/messages`),
@@ -236,6 +258,7 @@ export const membershipApi = {
   getStatus: () => req<{ status: string; expiresAt: string | null; isActive: boolean }>('/membership/status'),
   getPlans: () => req<Array<{ id: string; key: string; name: string; description: string | null; fee: number; durationDays: number; discountRate: number; isActive: boolean; isDefault: boolean }>>('/membership/plans'),
   getFee: () => req<{ fee: number }>('/membership/fee'),
+  purchase: () => req<{ membershipStatus: string; membershipExpiresAt: string; membershipActive: boolean }>('/membership/purchase', { method: 'POST' }),
 };
 
 // ── RBAC / Navigation ───────────────────────────────────────────────────────

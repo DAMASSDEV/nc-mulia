@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { formatPrice } from '../lib/formatters';
+import { getProductImage } from '../lib/productImages';
 
 interface CartPageProps {
   openLogin: () => void;
@@ -83,13 +84,24 @@ export default function CartPage({ openLogin }: CartPageProps) {
           )}
 
           <div className="bg-white border rounded-3xl p-9 mb-8">
-            {cart.map((item) => (
-              <div key={item.product.id} className="flex justify-between items-center py-4 border-b last:border-none">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-emerald-50 rounded-xl flex items-center justify-center">
-                    <span className="text-xl font-bold text-emerald-200">{item.product.name[0]}</span>
-                  </div>
-                  <div>
+            {cart.map((item) => {
+              const imgSrc = (item.product.imageUrl && (item.product.imageUrl.startsWith('http') || item.product.imageUrl.startsWith('/')))
+                ? item.product.imageUrl
+                : getProductImage(item.product.name);
+              return (
+                <div key={item.product.id} className="flex justify-between items-center py-4 border-b last:border-none">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-emerald-50/80 border border-emerald-100/60 rounded-2xl p-1.5 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
+                      <img
+                        src={imgSrc}
+                        alt={item.product.name}
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          e.currentTarget.src = '/menu/formula-1-vanilla.png';
+                        }}
+                      />
+                    </div>
+                    <div>
                     <div className="font-medium">{item.product.name}</div>
                     {item.discountPercentage > 0 && (
                       <div className="text-xs text-emerald-600 mt-0.5">Diskon {item.discountPercentage}%</div>
@@ -116,7 +128,8 @@ export default function CartPage({ openLogin }: CartPageProps) {
                   </button>
                 </div>
               </div>
-            ))}
+            );
+          })}
           </div>
 
           <div className="flex justify-between items-center text-3xl font-semibold px-2 mb-4">

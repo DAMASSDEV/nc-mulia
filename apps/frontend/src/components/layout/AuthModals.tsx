@@ -17,6 +17,7 @@ interface AuthModalsProps {
   handleRegister: (e: React.FormEvent) => void;
   isLoading: boolean;
   error?: string;
+  successMessage?: string;
 }
 
 export function AuthModals({
@@ -25,7 +26,7 @@ export function AuthModals({
   loginForm, setLoginForm,
   registerForm, setRegisterForm,
   handleLogin, handleRegister,
-  isLoading, error,
+  isLoading, error, successMessage,
 }: AuthModalsProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showRegPassword, setShowRegPassword] = useState(false);
@@ -57,6 +58,12 @@ export function AuthModals({
                     <p className="text-xs text-foreground-subtle">Selamat datang kembali</p>
                   </div>
                 </div>
+
+                {successMessage && (
+                  <div className="mb-5 p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-sm font-medium text-emerald-700">
+                    {successMessage}
+                  </div>
+                )}
 
                 {error && (
                   <div className="mb-5 p-3.5 bg-danger-soft border border-danger/20 rounded-xl text-sm text-danger">

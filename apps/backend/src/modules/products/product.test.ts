@@ -125,11 +125,11 @@ describe('ProductsService', () => {
       expect(mockPrisma.product.create).toHaveBeenCalledWith({ data: expect.objectContaining({ name: 'New Shake', stock: 25 }) });
     });
 
-    it('defaults stock to 0 when not provided', async () => {
-      mockPrisma.product.create.mockResolvedValue({ id: 'p-new', name: 'New Shake', category: 'Nutrition', description: '', benefits: '', price: 150000, imageUrl: null, stock: 0, isAvailable: true, isMemberDiscountEligible: true, isActive: true });
+    it('defaults stock to 100 when not provided', async () => {
+      mockPrisma.product.create.mockResolvedValue({ id: 'p-new', name: 'New Shake', category: 'Nutrition', description: '', benefits: '', price: 150000, imageUrl: null, stock: 100, isAvailable: true, isMemberDiscountEligible: true, isActive: true });
       const svc = new ProductsService();
       await svc.create({ name: 'New Shake', category: 'Nutrition', price: 150000 });
-      expect(mockPrisma.product.create).toHaveBeenCalledWith({ data: expect.objectContaining({ stock: 0 }) });
+      expect(mockPrisma.product.create).toHaveBeenCalledWith({ data: expect.objectContaining({ stock: 100 }) });
     });
 
     it('returns product with initial pricing (no discount)', async () => {
@@ -170,11 +170,11 @@ describe('ProductsService', () => {
   });
 
   describe('isAvailable', () => {
-    it('isAvailable = false when stock = 0', async () => {
+    it('isAvailable = true by default even when stock = 0', async () => {
       mockPrisma.product.findMany.mockResolvedValue([{ ...stdProduct, id: 'p1', name: 'Out of Stock', stock: 0 }]);
       const svc = new ProductsService();
       const result = await svc.findAll({});
-      expect(result[0].isAvailable).toBe(false);
+      expect(result[0].isAvailable).toBe(true);
     });
 
     it('isAvailable = true when stock > 0', async () => {
@@ -184,8 +184,8 @@ describe('ProductsService', () => {
       expect(result[0].isAvailable).toBe(true);
     });
 
-    it('isAvailable = false even when product.isAvailable=true if stock=0', async () => {
-      mockPrisma.product.findMany.mockResolvedValue([{ ...stdProduct, id: 'p1', stock: 0 }]);
+    it('isAvailable = false only when explicitly set to false', async () => {
+      mockPrisma.product.findMany.mockResolvedValue([{ ...stdProduct, id: 'p1', isAvailable: false }]);
       const svc = new ProductsService();
       const result = await svc.findAll({});
       expect(result[0].isAvailable).toBe(false);

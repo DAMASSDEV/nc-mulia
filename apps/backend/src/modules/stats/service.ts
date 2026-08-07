@@ -1,7 +1,7 @@
 import { prisma } from '../../lib/db.js';
 
 export async function getDashboardStats() {
-  const [totalUsers, totalProducts, totalConsultations, pendingConsultations, totalBmiRecords, totalTransactions] =
+  const [totalUsers, totalProducts, totalConsultations, pendingConsultations, totalBmiRecords, totalTransactions, pendingTransactions] =
     await Promise.all([
       prisma.userRole.count({ where: { role: { slug: 'user' } } }),
       prisma.product.count({ where: { isActive: true } }),
@@ -9,6 +9,7 @@ export async function getDashboardStats() {
       prisma.consultation.count({ where: { status: 'PENDING' } }),
       prisma.bmiRecord.count(),
       prisma.transaction.count(),
+      prisma.transaction.count({ where: { status: { in: ['PENDING', 'AWAITING_PAYMENT'] } } }),
     ]);
 
   const [recentConsultations, recentTransactions, recentBmi] = await Promise.all([
@@ -63,7 +64,7 @@ export async function getDashboardStats() {
 
   const recentActivity = activityItems.slice(0, 10);
 
-  return { totalUsers, totalProducts, totalConsultations, pendingConsultations, totalBmiRecords, totalTransactions, recentActivity };
+  return { totalUsers, totalProducts, totalConsultations, pendingConsultations, totalBmiRecords, totalTransactions, pendingTransactions, recentActivity };
 }
 
 function formatRelative(date: Date): string {

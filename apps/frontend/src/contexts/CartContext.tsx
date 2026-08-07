@@ -7,6 +7,7 @@ export interface CartProductInfo {
   id: string;
   name: string;
   price: number;
+  imageUrl?: string;
 }
 
 export interface CartItem {
@@ -38,13 +39,13 @@ const CartContext = createContext<CartContextValue | null>(null);
 
 const LOCAL_STORAGE_KEY = 'nc_mulia_guest_cart';
 
-function buildCartItem(productId: string, productName: string, basePrice: number, qty: number): CartItem {
+function buildCartItem(productId: string, productName: string, basePrice: number, qty: number, imageUrl?: string): CartItem {
   const discountPercentage = 0;
   const discountAmount = 0;
   const finalUnitPrice = basePrice;
   const subtotal = finalUnitPrice * qty;
   return {
-    product: { id: productId, name: productName, price: finalUnitPrice },
+    product: { id: productId, name: productName, price: finalUnitPrice, imageUrl },
     qty,
     basePrice,
     discountPercentage,
@@ -81,7 +82,7 @@ export function CartProvider({ children, user }: { children: ReactNode; user: Us
       cartApi.get().then(res => {
         if (res.success && res.data) {
           setCart(res.data.map((item: CartProduct) => ({
-            product: { id: item.productId, name: item.productName, price: item.finalUnitPrice },
+            product: { id: item.productId, name: item.productName, price: item.finalUnitPrice, imageUrl: item.imageUrl ?? undefined },
             qty: item.quantity,
             basePrice: item.basePrice,
             discountPercentage: item.discountPercentage,
@@ -107,7 +108,7 @@ export function CartProvider({ children, user }: { children: ReactNode; user: Us
         const res = await cartApi.addItem({ productId: product.id, quantity: qty });
         if (res.success && res.data) {
           setCart(res.data.map((item: CartProduct) => ({
-            product: { id: item.productId, name: item.productName, price: item.finalUnitPrice },
+            product: { id: item.productId, name: item.productName, price: item.finalUnitPrice, imageUrl: item.imageUrl ?? product.imageUrl },
             qty: item.quantity,
             basePrice: item.basePrice,
             discountPercentage: item.discountPercentage,
@@ -128,7 +129,7 @@ export function CartProvider({ children, user }: { children: ReactNode; user: Us
                 : i
             );
           } else {
-            next = [...prev, buildCartItem(product.id, product.name, product.price, qty)];
+            next = [...prev, buildCartItem(product.id, product.name, product.price, qty, product.imageUrl)];
           }
           saveGuestCart(next);
           return next;
@@ -150,7 +151,7 @@ export function CartProvider({ children, user }: { children: ReactNode; user: Us
         const res = await cartApi.updateItem(productId, qty);
         if (res.success && res.data) {
           setCart(res.data.map((item: CartProduct) => ({
-            product: { id: item.productId, name: item.productName, price: item.finalUnitPrice },
+            product: { id: item.productId, name: item.productName, price: item.finalUnitPrice, imageUrl: item.imageUrl ?? undefined },
             qty: item.quantity,
             basePrice: item.basePrice,
             discountPercentage: item.discountPercentage,

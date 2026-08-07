@@ -9,6 +9,7 @@ import { Toggle } from '../../components/ui/Toggle';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import { ProductModal, type ProductFormData } from '../../components/admin/ProductModal';
 import { productsApi, type Product } from '../../lib/api';
+import { getProductImage } from '../../lib/productImages';
 import type { User } from '../../types';
 
 type Category = 'All' | 'Shake' | 'Tea' | 'Bar' | 'Suplemen' | 'Program';
@@ -26,7 +27,6 @@ const categoryBgColors: Record<string, string> = {
   Shake: '#DDF4EA', Tea: '#FFF5D6', Bar: '#D6E6F7', Suplemen: '#FFF0C0', Program: '#D1EADD',
 };
 
- 
 export default function AdminProducts({ user, onLogout }: { user: User; onLogout: () => void }) {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<Category>('All');
@@ -38,8 +38,13 @@ export default function AdminProducts({ user, onLogout }: { user: User; onLogout
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   useEffect(() => {
-    productsApi.list().then(res => {
-      if (res.success && res.data) setProducts(res.data);
+    productsApi.list({ includeInactive: 'true' }).then(res => {
+      if (res.success && res.data) {
+        setProducts(res.data.map(p => ({
+          ...p,
+          imageUrl: p.imageUrl && !p.imageUrl.includes('placeholder') ? p.imageUrl : getProductImage(p.name),
+        })));
+      }
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
@@ -170,26 +175,16 @@ export default function AdminProducts({ user, onLogout }: { user: User; onLogout
               const initials = product.category.slice(0, 2).toUpperCase();
               return (
                 <Card key={product.id} padding="none" hover className="overflow-hidden group relative">
-                  <div className="h-40 flex items-center justify-center relative" style={{ backgroundColor: bgColor }}>
-                    <span className="text-4xl font-bold text-black/15 select-none">{initials}</span>
-                    <div className="absolute top-3 right-3">
+                  <div className="h-44 bg-[#F5FAF7] flex items-center justify-center relative overflow-hidden border-b border-border/60">
+                    {product.imageUrl ? (
+                      <img src={product.imageUrl} alt={product.name} className="max-w-full max-h-full object-contain p-2" />
+                    ) : (
+                      <span className="text-4xl font-bold text-black/15 select-none">{initials}</span>
+                    )}
+                    <div className="absolute top-3 right-3 z-10">
                       <Badge variant={product.isActive ? 'success' : 'neutral'} dot>
                         {product.isActive ? 'Aktif' : 'Nonaktif'}
                       </Badge>
-                    </div>
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/40 to-transparent py-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      <div className="flex items-center justify-center gap-2">
-                        <button className="w-8 h-8 rounded-lg bg-white/90 text-foreground hover:bg-white flex items-center justify-center transition-colors shadow-sm" title="Edit Produk" onClick={() => handleEditClick(product)}>
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          className="w-8 h-8 rounded-lg bg-white/90 text-danger hover:bg-white flex items-center justify-center transition-colors shadow-sm"
-                          title="Hapus Produk"
-                          onClick={() => handleDeleteClick(product)}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
                     </div>
                   </div>
                   <div className="p-4">
@@ -200,13 +195,29 @@ export default function AdminProducts({ user, onLogout }: { user: User; onLogout
                         Rp {(product.pricing?.finalPrice ?? product.basePrice).toLocaleString('id-ID')}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-foreground-muted">Aktif:</span>
-                      <Toggle
-                        checked={product.isActive}
-                        onChange={(e) => handleToggleActive(product.id, e.target.checked)}
-                        aria-label={`Toggle ${product.name}`}
-                      />
+                    <div className="flex items-center justify-between pt-3 border-t border-border mt-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleEditClick(product)}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-brand-primary hover:bg-brand-primary-soft px-2.5 py-1 rounded-lg transition-colors"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" /> Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(product)}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-danger hover:bg-danger-soft px-2.5 py-1 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Hapus
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-foreground-subtle">Aktif:</span>
+                        <Toggle
+                          checked={product.isActive}
+                          onChange={(e) => handleToggleActive(product.id, e.target.checked)}
+                          aria-label={`Toggle ${product.name}`}
+                        />
+                      </div>
                     </div>
                   </div>
                 </Card>

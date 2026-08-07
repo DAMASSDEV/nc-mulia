@@ -21,9 +21,9 @@ export async function createAuditLog(input: AuditLogInput) {
       module: input.module,
       entityType: input.entityType,
       entityId: input.entityId,
-      beforeData: input.beforeData ?? undefined,
-      afterData: input.afterData ?? undefined,
-      metadata: input.metadata ?? undefined,
+      beforeData: input.beforeData !== undefined ? (typeof input.beforeData === 'string' ? input.beforeData : JSON.stringify(input.beforeData)) : null,
+      afterData: input.afterData !== undefined ? (typeof input.afterData === 'string' ? input.afterData : JSON.stringify(input.afterData)) : null,
+      metadata: input.metadata !== undefined ? (typeof input.metadata === 'string' ? input.metadata : JSON.stringify(input.metadata)) : null,
       ipAddress: input.ipAddress,
       userAgent: input.userAgent,
     },
@@ -41,10 +41,17 @@ export async function listAuditLogs(query: {
   const page = Math.max(1, query.page ?? 1);
   const limit = Math.min(100, Math.max(1, query.limit ?? 20));
   const where: Record<string, unknown> = {};
-  if (query.module) where.module = query.module;
-  if (query.action) where.action = query.action;
-  if (query.userId) where.actorUserId = query.userId;
-  if (query.entityType) where.entityType = query.entityType;
+  if (query.module && query.module !== 'undefined') {
+    where.module = { contains: query.module, mode: 'insensitive' };
+  }
+  if (query.action && query.action !== 'undefined') {
+    where.OR = [
+      { action: { contains: query.action, mode: 'insensitive' } },
+      { module: { contains: query.action, mode: 'insensitive' } },
+    ];
+  }
+  if (query.userId && query.userId !== 'undefined') where.actorUserId = query.userId;
+  if (query.entityType && query.entityType !== 'undefined') where.entityType = { contains: query.entityType, mode: 'insensitive' };
 
   const [records, total] = await Promise.all([
     prisma.adminAuditLog.findMany({

@@ -14,8 +14,10 @@ export function Navbar({ user, logout, openLogin, cartCount = 0 }: NavbarProps) 
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
 
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+
   const navLinks = [
-    { to: '/dashboard', label: 'Dashboard', auth: true },
+    { to: isAdmin ? '/admin' : '/dashboard', label: 'Dashboard', auth: true },
     { to: '/', label: 'Beranda' },
     { to: '/konsultasi', label: 'Konsultasi' },
     { to: '/bmi', label: 'Hitung BMI' },

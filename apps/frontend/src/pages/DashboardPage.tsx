@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { consultationApi, bmiApi, transactionApi } from '../lib/api';
 import type { User, Consultation, Transaction } from '../types';
 
@@ -10,6 +10,9 @@ interface DashboardStats {
 }
 
 export default function DashboardPage({ user }: { user: User }) {
+  if (user.role === 'admin' || user.role === 'super_admin') {
+    return <Navigate to="/admin" replace />;
+  }
   const [stats, setStats] = useState<DashboardStats>({ consultations: 0, bmiRecords: 0, transactions: 0 });
   const [recentConsultations, setRecentConsultations] = useState<Consultation[]>([]);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
@@ -33,11 +36,10 @@ export default function DashboardPage({ user }: { user: User }) {
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  const isMember = user.membershipStatus === 'member';
+  const isMember = user.membershipStatus?.toUpperCase() === 'MEMBER';
   const memberUntil = user.membershipExpiresAt
     ? new Date(user.membershipExpiresAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
     : null;
-  const userDisplayName = user.name ?? 'Pengguna';
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-12">
@@ -52,35 +54,47 @@ export default function DashboardPage({ user }: { user: User }) {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-emerald-100 text-sm font-medium tracking-widest uppercase mb-1">Membership Aktif</div>
-              <div className="text-3xl font-bold">Member Herbalife</div>
+              <div className="text-3xl font-bold flex items-center gap-2">
+                Member Herbalife
+                <span className="bg-white text-emerald-700 text-xs px-3 py-1 rounded-full font-bold">MEMBER</span>
+              </div>
               {memberUntil && <div className="text-emerald-100 text-sm mt-1">Berlaku sampai {memberUntil}</div>}
-              <div className="mt-2 bg-white/20 rounded-full px-3 py-1 text-xs inline-block">Diskon 30% di Semua Produk</div>
+              <div className="mt-3 bg-white/20 rounded-full px-4 py-1.5 text-xs font-semibold inline-block">
+                🎉 Diskon 30% Otomatis Aktif di Semua Produk
+              </div>
             </div>
-            <div className="text-6xl opacity-20">NC</div>
+            <div className="text-6xl opacity-20 font-black">NC</div>
           </div>
         </div>
       ) : (
-        <div className="bg-slate-100 rounded-3xl p-8 mb-8 border border-slate-200">
-          <div className="text-slate-500 text-sm font-medium tracking-widest uppercase mb-1">Membership</div>
-          <div className="text-2xl font-bold text-slate-700 mb-2">Regular Member</div>
-          <p className="text-slate-500 text-sm mb-4">Upgrade ke Member Herbalife untuk mendapatkan diskon 30% di semua produk.</p>
-          <Link to="/membership">
-            <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-2xl text-sm font-medium transition-colors">
-              Upgrade ke Member Herbalife
-            </button>
-          </Link>
+        <div className="bg-slate-50 rounded-3xl p-8 mb-8 border border-slate-200">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="text-slate-400 text-xs font-bold tracking-widest uppercase mb-1">Status Keanggotaan</div>
+              <div className="text-2xl font-bold text-slate-800 flex items-center gap-2 mb-1">
+                Akun Reguler
+                <span className="bg-slate-200 text-slate-700 text-xs px-2.5 py-0.5 rounded-full font-semibold">REGULER</span>
+              </div>
+              <p className="text-slate-600 text-sm">Dapatkan keuntungan diskon 30% di semua produk dengan berlangganan Member Herbalife.</p>
+            </div>
+            <Link to="/membership" className="flex-shrink-0">
+              <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl text-sm font-bold shadow-md transition-all">
+                Upgrade ke Member Herbalife
+              </button>
+            </Link>
+          </div>
         </div>
       )}
 
       <div className="grid grid-cols-3 gap-4 mb-10">
         {[
-          { label: 'Konsultasi', value: loading ? '-' : stats.consultations, color: 'text-emerald-600' },
-          { label: 'BMI Record', value: loading ? '-' : stats.bmiRecords, color: 'text-blue-600' },
-          { label: 'Transaksi', value: loading ? '-' : stats.transactions, color: 'text-amber-600' },
+          { label: 'Konsultasi Saya', value: loading ? '-' : stats.consultations, color: 'text-emerald-600' },
+          { label: 'BMI Record Saya', value: loading ? '-' : stats.bmiRecords, color: 'text-blue-600' },
+          { label: 'Transaksi Saya', value: loading ? '-' : stats.transactions, color: 'text-amber-600' },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-white border border-slate-200 rounded-2xl p-6 text-center">
             <div className={`text-3xl font-bold ${color}`}>{value}</div>
-            <div className="text-slate-500 text-sm mt-1">{label}</div>
+            <div className="text-slate-500 text-xs font-medium mt-1">{label}</div>
           </div>
         ))}
       </div>

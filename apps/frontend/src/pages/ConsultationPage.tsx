@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Send, Clock, CheckCircle, Info, Lock } from 'lucide-react';
+import { MessageSquare, Send, Clock, CheckCircle, Info, Lock, Loader2, RefreshCw } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Textarea } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
+import { Badge } from '../components/ui/Badge';
 import { consultationApi } from '../lib/api';
-import type { User } from '../types';
+import type { User, Consultation } from '../types';
 
 interface ConsultationPageProps {
   user: User | null;
@@ -18,11 +19,36 @@ const tips = [
   'Konsultasi ini bukan pengganti diagnosis medis dari dokter.',
 ];
 
+const statusBadge = (status: string): { label: string; variant: 'warning' | 'success' | 'neutral' } => {
+  if (status === 'pending') return { label: 'Menunggu Respons', variant: 'warning' };
+  if (status === 'answered') return { label: 'Terjawab', variant: 'success' };
+  return { label: 'Ditutup', variant: 'neutral' };
+};
+
 export default function ConsultationPage({ user }: ConsultationPageProps) {
   const [question, setQuestion] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [history, setHistory] = useState<Consultation[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  const loadHistory = () => {
+    if (!user) return;
+    setLoadingHistory(true);
+    consultationApi.list()
+      .then(res => {
+        if (res.success && res.data) {
+          setHistory(Array.isArray(res.data) ? res.data : []);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingHistory(false));
+  };
+
+  useEffect(() => {
+    loadHistory();
+  }, [user]);
 
   const handleSubmit = async () => {
     if (!question.trim()) return;
@@ -39,6 +65,7 @@ export default function ConsultationPage({ user }: ConsultationPageProps) {
       if (res.success) {
         setSubmitted(true);
         setQuestion('');
+        loadHistory();
       } else {
         setError(res.message || 'Gagal mengirim pertanyaan. Silakan coba lagi.');
       }
@@ -130,7 +157,7 @@ export default function ConsultationPage({ user }: ConsultationPageProps) {
                       <div>
                         <h3 className="text-base font-semibold text-success mb-1">Pertanyaan Terkirim</h3>
                         <p className="text-sm text-foreground-muted leading-relaxed">
-                          Tim kami sedang meninjau pertanyaan Anda. Respons biasanya membutuhkan waktu 1-2 hari kerja. Pantau status di halaman Riwayat Saya.
+                          Tim kami sedang meninjau pertanyaan Anda. Respons biasanya membutuhkan waktu 1-2 hari kerja. Pantau status di bawah ini.
                         </p>
                         <button
                           onClick={() => setSubmitted(false)}
@@ -144,6 +171,72 @@ export default function ConsultationPage({ user }: ConsultationPageProps) {
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Consultation History */}
+            {user && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-foreground">Riwayat Konsultasi</h2>
+                  <button
+                    onClick={loadHistory}
+                    disabled={loadingHistory}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-primary hover:text-brand-primary-hover transition-colors disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${loadingHistory ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </button>
+                </div>
+
+                {loadingHistory ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="w-6 h-6 animate-spin text-brand-primary" />
+                  </div>
+                ) : history.length === 0 ? (
+                  <Card className="text-center py-10">
+                    <MessageSquare className="w-8 h-8 text-foreground-subtle mx-auto mb-3 opacity-40" />
+                    <p className="text-sm text-foreground-muted">Belum ada riwayat konsultasi. Ajukan pertanyaan pertama Anda!</p>
+                  </Card>
+                ) : (
+                  <div className="space-y-4">
+                    {history.map(c => {
+                      const badge = statusBadge(c.status);
+                      return (
+                        <Card key={c.id} className="hover:shadow-md transition-shadow">
+                          <div className="flex items-start justify-between gap-3 mb-3">
+                            <Badge variant={badge.variant} dot>{badge.label}</Badge>
+                            <span className="text-xs text-foreground-subtle flex-shrink-0">
+                              {new Date(c.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </span>
+                          </div>
+
+                          <div className="mb-3">
+                            <div className="text-xs text-foreground-subtle mb-1 font-medium">Pertanyaan Anda:</div>
+                            <p className="text-sm text-foreground leading-relaxed">{c.question}</p>
+                          </div>
+
+                          {c.response ? (
+                            <div className="p-4 bg-success-soft rounded-xl border border-success/20">
+                              <div className="flex items-center gap-2 mb-2">
+                                <CheckCircle className="w-3.5 h-3.5 text-success" />
+                                <span className="text-xs font-semibold text-success">Respons dari Tim NC MULIA:</span>
+                              </div>
+                              <p className="text-sm text-foreground leading-relaxed">{c.response}</p>
+                            </div>
+                          ) : (
+                            <div className="p-3 bg-warning-soft rounded-xl border border-warning/20">
+                              <div className="flex items-center gap-2">
+                                <Clock className="w-3.5 h-3.5 text-warning" />
+                                <span className="text-xs text-warning font-medium">Menunggu respons dari tim kami (1-2 hari kerja)</span>
+                              </div>
+                            </div>
+                          )}
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Sidebar Tips */}
@@ -194,3 +287,4 @@ export default function ConsultationPage({ user }: ConsultationPageProps) {
     </div>
   );
 }
+

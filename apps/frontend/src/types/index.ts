@@ -69,6 +69,7 @@ export type BmiCategory = 'Kurus' | 'Normal' | 'Kelebihan Berat' | 'Obesitas';
 export interface CartProduct {
   productId: string;
   productName: string;
+  imageUrl?: string | null;
   quantity: number;
   basePrice: number;
   discountPercentage: number;
@@ -145,6 +146,7 @@ export interface DashboardStats {
   pendingConsultations: number;
   totalBmiRecords: number;
   totalTransactions: number;
+  pendingTransactions?: number;
   recentActivity?: Array<{
     id: string;
     type: 'consultation' | 'transaction' | 'bmi';
