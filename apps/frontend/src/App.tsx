@@ -1,4 +1,4 @@
-// NC Mulia Main Application Entry
+// NC Mulia Main Application Entry (Forcing Vercel Deployment)
 import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Navbar } from './components/layout/Navbar';
