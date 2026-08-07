@@ -96,7 +96,8 @@ export default function HistoryPage({ user }: HistoryPageProps) {
           });
         });
 
-        const txData = Array.isArray(txRes?.data?.transactions) ? txRes.data.transactions : (Array.isArray(txRes?.data) ? txRes.data : []);
+        const resObj = txRes?.data as any;
+        const txData: Transaction[] = Array.isArray(resObj?.transactions) ? resObj.transactions : (Array.isArray(resObj) ? resObj : []);
         txData.forEach((t: Transaction) => {
           const d = new Date(t.createdAt);
           historyItems.push({
