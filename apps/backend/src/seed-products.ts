@@ -1,6 +1,5 @@
 import 'dotenv/config';
 import { prisma } from './lib/db.js';
-import { Prisma } from '@prisma/client';
 import { herbalifeProducts } from './data/herbalife-products.js';
 import { getProductImage } from './data/productImages.js';
 
@@ -33,7 +32,7 @@ async function seed() {
           name: product.name,
           category: product.category,
           description: product.description,
-          price: new Prisma.Decimal(product.basePrice),
+          price: product.basePrice,
           imageUrl,
           isAvailable: true,
           isMemberDiscountEligible: true,

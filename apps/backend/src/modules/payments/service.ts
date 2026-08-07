@@ -1,5 +1,5 @@
 import { randomBytes } from 'crypto';
-import { Prisma } from '@prisma/client';
+// Removed Prisma import
 import { prisma } from '../../lib/db.js';
 import { env } from '../../config/env.js';
 
@@ -66,7 +66,7 @@ export class PaymentsService {
         transactionId, userId,
         method: method as 'qris',
         provider: METHOD_PROVIDERS[method] ?? method,
-        amount: new Prisma.Decimal(amount),
+        amount: amount,
         referenceNumber: generateRef(),
         paymentCode: method === 'qris' ? null : generateVa(),
         qrPayload: method === 'qris' ? generateQrPayload(amount) : null,

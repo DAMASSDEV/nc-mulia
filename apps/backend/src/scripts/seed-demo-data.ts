@@ -1,7 +1,6 @@
 import 'dotenv/config';
 import { prisma } from '../lib/db.js';
 import bcrypt from 'bcryptjs';
-import { Prisma } from '@prisma/client';
 
 const USER_ROLE_ID = 'seed_role_user';
 
@@ -74,9 +73,9 @@ async function seedDemoData() {
     await prisma.bmiRecord.create({
       data: {
         userId: b.userId,
-        weight: new Prisma.Decimal(b.weight),
-        height: new Prisma.Decimal(b.height),
-        bmi: new Prisma.Decimal(b.bmi),
+        weight: b.weight,
+        height: b.height,
+        bmi: b.bmi,
         bmiCategory: b.category,
         recommendations: b.recs,
         createdAt: new Date(Date.now() - daysAgo * 86400000),
@@ -155,11 +154,11 @@ async function seedDemoData() {
         productId: p.id,
         productName: p.name,
         quantity: qty,
-        basePrice: new Prisma.Decimal(basePrice),
-        discountPercentage: new Prisma.Decimal(discountPct),
-        discountAmount: new Prisma.Decimal(discountAmt),
-        finalUnitPrice: new Prisma.Decimal(finalPrice),
-        subtotal: new Prisma.Decimal(finalPrice * qty),
+        basePrice: basePrice,
+        discountPercentage: discountPct,
+        discountAmount: discountAmt,
+        finalUnitPrice: finalPrice,
+        subtotal: finalPrice * qty,
       };
     });
 
@@ -174,9 +173,9 @@ async function seedDemoData() {
       data: {
         userId,
         membershipStatusSnapshot: isMember ? 'MEMBER' : 'REGULAR',
-        normalTotal: new Prisma.Decimal(normalTotal),
-        totalDiscount: new Prisma.Decimal(totalDiscount),
-        finalTotal: new Prisma.Decimal(finalTotal),
+        normalTotal: normalTotal,
+        totalDiscount: totalDiscount,
+        finalTotal: finalTotal,
         status: txConfig.status,
         createdAt,
         items: { create: items },
@@ -193,7 +192,7 @@ async function seedDemoData() {
           userId,
           method,
           provider: providers[method] || method.toUpperCase(),
-          amount: new Prisma.Decimal(finalTotal),
+          amount: finalTotal,
           referenceNumber: `PAY-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
           paymentCode: `${Math.floor(Math.random() * 9000000000) + 1000000000}`,
           status: txConfig.payStatus,

@@ -1,4 +1,3 @@
-import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db.js';
 import { getMemberDiscountRate } from '../pricing/index.js';
 import { createAuditLog } from '../audit/service.js';
@@ -55,11 +54,11 @@ export class TransactionsService {
         productId: product.id,
         productName: product.name,
         quantity: item.quantity,
-        basePrice: new Prisma.Decimal(basePrice),
-        discountPercentage: new Prisma.Decimal(discountPct),
-        discountAmount: new Prisma.Decimal(discountAmt),
-        finalUnitPrice: new Prisma.Decimal(finalPrice),
-        subtotal: new Prisma.Decimal(subtotal),
+        basePrice: basePrice,
+        discountPercentage: discountPct,
+        discountAmount: discountAmt,
+        finalUnitPrice: finalPrice,
+        subtotal: subtotal,
       };
     });
 
@@ -73,9 +72,9 @@ export class TransactionsService {
         data: {
           userId,
           membershipStatusSnapshot: isMember ? 'MEMBER' : 'REGULAR',
-          normalTotal: new Prisma.Decimal(normalTotal),
-          totalDiscount: new Prisma.Decimal(totalDiscount),
-          finalTotal: new Prisma.Decimal(finalTotal),
+          normalTotal: normalTotal,
+          totalDiscount: totalDiscount,
+          finalTotal: finalTotal,
           status: 'PENDING',
           items: { create: priceItems },
         },

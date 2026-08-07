@@ -8,22 +8,22 @@ export interface LocationScheduleInput {
 
 export interface LocationInput {
   name: string;
-  description?: string;
-  placeId?: string;
+  description?: string | null;
+  placeId?: string | null;
   address: string;
   city: string;
-  province?: string;
-  phone?: string;
-  email?: string;
-  whatsapp?: string;
-  mapsUrl: string;
-  latitude?: number;
-  longitude?: number;
-  openingHours?: Record<string, { open: string; close: string; closed: boolean }>;
+  province?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  whatsapp?: string | null;
+  mapsUrl?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  openingHours?: Record<string, { open: string; close: string; closed: boolean }> | null;
   isPrimary?: boolean;
   isActive?: boolean;
-  sortOrder?: number;
-  schedules?: LocationScheduleInput[];
+  sortOrder?: number | null;
+  schedules?: LocationScheduleInput[] | null;
 }
 
 export interface LocationRecord {
@@ -114,7 +114,7 @@ export class LocationsService {
       phone: data.phone ?? null,
       email: data.email ?? null,
       whatsapp: data.whatsapp ?? null,
-      mapsUrl: data.mapsUrl,
+      mapsUrl: data.mapsUrl ?? '',
       latitude: data.latitude ?? null,
       longitude: data.longitude ?? null,
       openingHours: data.openingHours ?? null,
