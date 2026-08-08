@@ -13,7 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "postinstall": "prisma generate",
-    "vercel-build": "npx prisma db push --accept-data-loss && npx tsx src/seed.ts && npx tsx src/seed-products.ts && npx tsx src/scripts/seed-stock.ts && npx tsx src/scripts/seed-demo-data.ts && tsc && node -e \"require('fs').copyFileSync('dist/vercel-serverless.js','dist/index.js')\""
+    "vercel-build": "npx prisma db push --accept-data-loss && VERCEL_BUILD=1 npx tsx src/seed.ts && VERCEL_BUILD=1 npx tsx src/seed-products.ts && VERCEL_BUILD=1 npx tsx src/scripts/seed-stock.ts && VERCEL_BUILD=1 npx tsx src/scripts/seed-demo-data.ts && tsc && node -e \"require('fs').copyFileSync('dist/vercel-serverless.js','dist/index.js')\""
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
