@@ -13,7 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "postinstall": "prisma generate",
-    "vercel-build": "export DATABASE_URL=file:./dev.db && export VERCEL_BUILD=1 && npx prisma db push --accept-data-loss && npx tsx src/seed.ts && npx tsx src/seed-products.ts && npx tsx src/scripts/seed-stock.ts && npx tsx src/scripts/seed-demo-data.ts && ls -la prisma/ && tsc && node -e \"require('fs').copyFileSync('dist/vercel-serverless.js','dist/index.js')\""
+    "vercel-build": "export DATABASE_URL=file:./dev.db && export VERCEL_BUILD=1 && npx prisma db push --accept-data-loss && npx tsx src/seed.ts && npx tsx src/seed-products.ts && npx tsx src/scripts/seed-stock.ts && npx tsx src/scripts/seed-demo-data.ts && echo '--- DB file info ---' && ls -la prisma/dev.db && tsc && mkdir -p dist/prisma && cp prisma/dev.db dist/prisma/dev.db && cp prisma/schema.prisma dist/prisma/schema.prisma && echo '--- dist/prisma contents ---' && ls -la dist/prisma/ && node -e \"require('fs').copyFileSync('dist/vercel-serverless.js','dist/index.js')\""
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
