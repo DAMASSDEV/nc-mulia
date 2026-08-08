@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { env } from './config/env.js';
+import { prisma } from './lib/db.js';
 import { errorHandler, notFoundHandler } from './middleware/index.js';
 import { authRoutes } from './modules/auth/index.js';
 import { userProfileRoutes, adminUserRoutes } from './modules/users/index.js';
@@ -45,6 +46,69 @@ app.use(cookieParser());
 
 app.get('/api/health', (_req, res) => {
   res.json({ success: true, message: 'OK', data: { timestamp: new Date().toISOString() } });
+});
+
+// Temporary debug endpoint to diagnose Vercel database issues
+app.get('/api/debug/db', async (_req, res) => {
+  const path = await import('path');
+  const fs = await import('fs');
+  
+  const cwd = process.cwd();
+  const prismaDir = path.default.resolve(cwd, 'prisma');
+  
+  const listFiles = (dir: string, prefix = ''): string[] => {
+    try {
+      const entries = fs.default.readdirSync(dir, { withFileTypes: true });
+      const files: string[] = [];
+      for (const e of entries) {
+        const full = path.default.join(dir, e.name);
+        const stat = fs.default.statSync(full);
+        if (e.isDirectory()) {
+          files.push(`${prefix}${e.name}/`);
+          files.push(...listFiles(full, `${prefix}${e.name}/`));
+        } else {
+          files.push(`${prefix}${e.name} (${stat.size}b)`);
+        }
+      }
+      return files;
+    } catch (err: any) {
+      return [`ERROR: ${err.message}`];
+    }
+  };
+  
+  // Check database tables
+  let tables: string[] = [];
+  try {
+    const result = await prisma.$queryRawUnsafe<Array<{name: string}>>(
+      "SELECT name FROM sqlite_master WHERE type='table'"
+    );
+    tables = result.map((r: any) => r.name);
+  } catch (err: any) {
+    tables = [`ERROR: ${err.message}`];
+  }
+  
+  res.json({
+    success: true,
+    data: {
+      cwd,
+      env: {
+        DATABASE_URL: process.env.DATABASE_URL,
+        VERCEL: process.env.VERCEL,
+        VERCEL_BUILD: process.env.VERCEL_BUILD,
+        NODE_ENV: process.env.NODE_ENV,
+      },
+      prismaDir: {
+        exists: fs.default.existsSync(prismaDir),
+        files: listFiles(prismaDir),
+      },
+      tmpDir: {
+        devDbExists: fs.default.existsSync('/tmp/dev.db'),
+        devDbSize: fs.default.existsSync('/tmp/dev.db') ? fs.default.statSync('/tmp/dev.db').size : 0,
+      },
+      rootFiles: listFiles(cwd).slice(0, 30),
+      tables,
+    },
+  });
 });
 
 app.get('/api/debug/routes', (_req, res) => {
