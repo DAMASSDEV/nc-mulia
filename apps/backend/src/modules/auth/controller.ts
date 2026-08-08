@@ -40,10 +40,11 @@ export async function login(req: Request, res: Response, next: NextFunction) {
       return;
     }
     const result = await authService.login(parsed.data);
+    const isProd = env.NODE_ENV === 'production' || process.env.VERCEL === '1';
     res.cookie('accessToken', result.token, {
       httpOnly: true,
-      secure: env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
     res.json({ success: true, message: 'Login berhasil.', data: result.user });
@@ -53,7 +54,12 @@ export async function login(req: Request, res: Response, next: NextFunction) {
 }
 
 export async function logout(_req: Request, res: Response, _next: NextFunction) {
-  res.clearCookie('accessToken');
+  const isProd = env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+  res.clearCookie('accessToken', {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
+  });
   res.json({ success: true, message: 'Logout berhasil.' });
 }
 
