@@ -20,7 +20,26 @@ import auditRoutes from './modules/audit/index.js';
 
 const app = express();
 
-app.use(cors({ origin: env.FRONTEND_URL, credentials: true }));
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    // Parse FRONTEND_URL as comma-separated list of allowed origins
+    const allowed = env.FRONTEND_URL.split(',').map(u => u.trim());
+    
+    // Also allow any Vercel preview URLs for this project
+    if (
+      allowed.some(u => origin === u) ||
+      origin.endsWith('.vercel.app')
+    ) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+}));
 app.use(express.json());
 app.use(cookieParser());
 

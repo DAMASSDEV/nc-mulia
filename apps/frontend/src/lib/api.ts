@@ -11,7 +11,7 @@ export type {
   Recommendation, AdminBmiRecord,
 };
 
-const BASE = '/api';
+const BASE = (import.meta.env.VITE_API_URL || '') + '/api';
 
 const req: <T>(path: string, opts?: RequestInit) => Promise<{ success: boolean; message: string; data?: T; errors?: Record<string, string[]> }> = async <T,>(path: string, opts?: RequestInit) => {
   const res = await fetch(`${BASE}${path}`, {
