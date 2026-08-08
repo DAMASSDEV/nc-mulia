@@ -8,47 +8,71 @@ const globalForPrisma = globalThis as unknown as {
 
 function getDatabaseUrl() {
   const envUrl = process.env.DATABASE_URL;
-  if (!envUrl || envUrl.startsWith('file:')) {
-    // Prisma resolves file: URLs relative to schema.prisma location (prisma/ dir).
-    // We mirror that: e.g. file:./dev.db → prisma/dev.db
-    const schemaDir = path.resolve(process.cwd(), 'prisma');
-    const relPath = envUrl ? envUrl.replace(/^file:/, '') : './dev.db';
-    let dbPath = path.resolve(schemaDir, relPath);
 
-    console.log(`[db] Resolved database path: ${dbPath} (exists: ${fs.existsSync(dbPath)})`);
-    
-    // On Vercel RUNTIME, the filesystem is read-only except for /tmp.
-    // SQLite requires a writable directory for journal/lock files.
-    // During BUILD (VERCEL_BUILD=1), filesystem is writable so skip this.
-    if (process.env.VERCEL && !process.env.VERCEL_BUILD) {
-      const tmpPath = '/tmp/dev.db';
-      if (!fs.existsSync(tmpPath)) {
-        console.log(`[db] Copying database to ${tmpPath} for writable access...`);
-        if (fs.existsSync(dbPath)) {
-          fs.copyFileSync(dbPath, tmpPath);
-          console.log(`[db] Copy successful.`);
-        } else {
-          console.warn(`[db] WARNING: source database not found at ${dbPath}`);
-          // Try fallback paths
-          const fallbacks = [
-            path.resolve(process.cwd(), 'prisma', 'dev.db'),
-            path.resolve(process.cwd(), 'prisma', 'prisma', 'dev.db'),
-          ];
-          for (const fb of fallbacks) {
-            if (fs.existsSync(fb)) {
-              console.log(`[db] Found database at fallback: ${fb}`);
-              fs.copyFileSync(fb, tmpPath);
-              break;
-            }
-          }
-        }
-      }
-      dbPath = tmpPath;
-    }
-    
-    return `file:${dbPath}`;
+  // If using a remote database (postgres, mysql, etc.), return as-is
+  if (envUrl && !envUrl.startsWith('file:')) {
+    return envUrl;
   }
-  return envUrl;
+
+  // For SQLite (file: URL or no URL), resolve the database path
+  // We always use prisma/dev.db as the canonical location
+  const bundledDbPath = path.resolve(process.cwd(), 'prisma', 'dev.db');
+
+  // Not on Vercel? Just return the standard path
+  if (!process.env.VERCEL) {
+    console.log(`[db] Local mode, using: ${bundledDbPath}`);
+    return `file:${bundledDbPath}`;
+  }
+
+  // On Vercel BUILD: filesystem is writable, write directly to bundled path
+  if (process.env.VERCEL_BUILD) {
+    console.log(`[db] Vercel BUILD mode, writing directly to: ${bundledDbPath}`);
+    return `file:${bundledDbPath}`;
+  }
+
+  // On Vercel RUNTIME: filesystem is read-only, copy to /tmp
+  const tmpPath = '/tmp/dev.db';
+  if (!fs.existsSync(tmpPath)) {
+    // Search for the database file in known locations
+    const searchPaths = [
+      bundledDbPath,                                                    // prisma/dev.db
+      path.resolve(process.cwd(), 'prisma', 'prisma', 'dev.db'),       // prisma/prisma/dev.db
+    ];
+
+    console.log(`[db] Vercel RUNTIME: searching for bundled database...`);
+    let found = false;
+    for (const searchPath of searchPaths) {
+      console.log(`[db]   checking: ${searchPath} (exists: ${fs.existsSync(searchPath)})`);
+      if (fs.existsSync(searchPath)) {
+        fs.copyFileSync(searchPath, tmpPath);
+        const stat = fs.statSync(tmpPath);
+        console.log(`[db]   ✓ Copied to ${tmpPath} (${stat.size} bytes)`);
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      // List all files under prisma/ for debugging
+      const prismaDir = path.resolve(process.cwd(), 'prisma');
+      console.error(`[db]   ✗ Database NOT FOUND in any known location!`);
+      try {
+        const listFiles = (dir: string, prefix = ''): string[] => {
+          const entries = fs.readdirSync(dir, { withFileTypes: true });
+          const files: string[] = [];
+          for (const e of entries) {
+            const full = path.join(dir, e.name);
+            if (e.isDirectory()) files.push(...listFiles(full, `${prefix}${e.name}/`));
+            else files.push(`${prefix}${e.name} (${fs.statSync(full).size}b)`);
+          }
+          return files;
+        };
+        console.error(`[db]   Files in prisma/: ${JSON.stringify(listFiles(prismaDir))}`);
+      } catch { /* ignore */ }
+    }
+  }
+
+  return `file:${tmpPath}`;
 }
 
 export const prisma =
