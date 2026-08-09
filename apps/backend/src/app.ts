@@ -136,6 +136,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/locations', locationsRoutes);
 app.use('/api/admin/locations', adminLocationsRoutes);
 app.use('/api/admin/rbac', rbacRoutes);
+// Mount admin audit log routes at /api/admin/audit
 app.use('/api/admin/audit', auditRoutes);
 
 app.use(notFoundHandler);
