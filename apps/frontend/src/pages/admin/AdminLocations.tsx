@@ -7,7 +7,7 @@ import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
 import { PlacesAutocomplete } from '../../components/ui/PlacesAutocomplete';
 import { AdminLayout } from '../../components/admin/AdminLayout';
-import { adminLocationsApi, type Location } from '../../lib/api';
+import { adminLocationsApi, type Location, API_BASE } from '../../lib/api';
 import type { User } from '../../types';
 
 const GOOGLE_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
@@ -174,7 +174,7 @@ export default function AdminLocations({ user, onLogout }: { user: User; onLogou
 
   const loadLocations = () => {
     setLoading(true);
-    fetch('/api/locations')
+    fetch(`${API_BASE}/locations`)
       .then(r => r.json())
       .then(d => { if (d.success) setLocations(d.data ?? []); })
       .catch(() => {})
@@ -234,8 +234,8 @@ export default function AdminLocations({ user, onLogout }: { user: User; onLogou
     try {
       const payload = buildFormPayload(form);
       const url = editing
-        ? `/api/admin/locations/${editing.id}`
-        : '/api/admin/locations';
+        ? `${API_BASE}/admin/locations/${editing.id}`
+        : `${API_BASE}/admin/locations`;
       const method = editing ? 'PUT' : 'POST';
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(payload) });
       const d = await res.json();
@@ -262,7 +262,7 @@ export default function AdminLocations({ user, onLogout }: { user: User; onLogou
     setDeleting(deleteConfirmId);
     setError('');
     try {
-      const res = await fetch(`/api/admin/locations/${deleteConfirmId}`, { method: 'DELETE', credentials: 'include' });
+      const res = await fetch(`${API_BASE}/admin/locations/${deleteConfirmId}`, { method: 'DELETE', credentials: 'include' });
       const d = await res.json();
       if (d.success) {
         setLocations(prev => prev.filter(l => l.id !== deleteConfirmId));
@@ -279,7 +279,7 @@ export default function AdminLocations({ user, onLogout }: { user: User; onLogou
   };
 
   const handleToggleActive = async (loc: Location) => {
-    const res = await fetch(`/api/admin/locations/${loc.id}/status`, {
+    const res = await fetch(`${API_BASE}/admin/locations/${loc.id}/status`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       credentials: 'include', body: JSON.stringify({ isActive: !loc.isActive }),
     });
@@ -290,7 +290,7 @@ export default function AdminLocations({ user, onLogout }: { user: User; onLogou
   };
 
   const handleSetPrimary = async (loc: Location) => {
-    const res = await fetch(`/api/admin/locations/${loc.id}/primary`, { method: 'PATCH', credentials: 'include' });
+    const res = await fetch(`${API_BASE}/admin/locations/${loc.id}/primary`, { method: 'PATCH', credentials: 'include' });
     const d = await res.json();
     if (d.success) {
       setLocations(prev => prev.map(l => ({ ...l, isPrimary: l.id === loc.id })));

@@ -7,6 +7,8 @@ import { Badge } from '../../components/ui/Badge';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import type { User as UserType } from '../../types';
 
+import { API_BASE } from '../../lib/api';
+
 interface AuditRecord {
   id: string;
   action: string;
@@ -28,7 +30,12 @@ interface PaginationMeta {
   totalPages: number;
 }
 
-const moduleIcons: Record<string, typeof Settings> = {
+interface AuditPageProps {
+  user: UserType;
+  onLogout?: () => void;
+}
+
+const moduleIcons: Record<string, typeof FileText> = {
   products: Package,
   users: User,
   roles: Shield,
@@ -40,16 +47,13 @@ const moduleIcons: Record<string, typeof Settings> = {
 };
 
 const actionColors: Record<string, { bg: string; text: string }> = {
-  create: { bg: 'bg-success-soft', text: 'text-success' },
-  update: { bg: 'bg-information-soft', text: 'text-information' },
-  delete: { bg: 'bg-danger-soft', text: 'text-danger' },
-  login: { bg: 'bg-brand-primary-soft', text: 'text-brand-primary' },
+  create: { bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
+  update: { bg: 'bg-amber-500/10', text: 'text-amber-400' },
+  delete: { bg: 'bg-red-500/10', text: 'text-red-400' },
+  read: { bg: 'bg-blue-500/10', text: 'text-blue-400' },
+  login: { bg: 'bg-purple-500/10', text: 'text-purple-400' },
+  logout: { bg: 'bg-surface-secondary', text: 'text-foreground-muted' },
 };
-
-interface AuditPageProps {
-  user: UserType;
-  onLogout: () => void;
-}
 
 export default function AdminAuditLog({ user, onLogout }: AuditPageProps) {
   const [records, setRecords] = useState<AuditRecord[]>([]);
@@ -64,7 +68,7 @@ export default function AdminAuditLog({ user, onLogout }: AuditPageProps) {
       const params = new URLSearchParams({ page: String(page), limit: '20' });
       if (moduleFilter) params.set('module', moduleFilter);
       if (search) params.set('action', search);
-      const res = await fetch(`/api/admin/audit?${params}`, { credentials: 'include' });
+      const res = await fetch(`${API_BASE}/admin/audit?${params}`, { credentials: 'include' });
       const json = await res.json();
       if (json.success) {
         setRecords(json.records || json.data?.records || []);
@@ -92,7 +96,7 @@ export default function AdminAuditLog({ user, onLogout }: AuditPageProps) {
   const modules = ['products', 'users', 'roles', 'locations', 'payments', 'discounts', 'settings', 'audit'];
 
   return (
-    <AdminLayout user={user} title="Audit Log" onLogout={onLogout}>
+    <AdminLayout user={user} title="Audit Log" onLogout={onLogout ?? (() => {})}>
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">Audit Log</h1>

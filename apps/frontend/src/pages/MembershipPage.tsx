@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Check, Star, Shield, Percent, Users, ArrowLeft, Loader2, Crown } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { membershipApi } from '../lib/api';
+import { membershipApi, API_BASE } from '../lib/api';
 
 function formatPrice(n: number) {
   return `Rp ${n.toLocaleString('id-ID')}`;
@@ -32,7 +32,7 @@ export default function MembershipPage({ user }: { user: { id: string; name: str
     }
     setCheckingStatus(true);
     Promise.all([
-      fetch('/api/membership/status', { credentials: 'include' }).then(r => r.json()),
+      fetch(`${API_BASE}/membership/status`, { credentials: 'include' }).then(r => r.json()),
       membershipApi.getFee(),
     ]).then(([statusJson, feeRes]) => {
       if (statusJson.success) setMemberStatus(statusJson.data);

@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import type { User } from '../../types';
+import { API_BASE } from '../../lib/api';
 
 interface Discount { id: string; key: string; label: string; rate: number; isActive: boolean; isSystem: boolean; }
 
@@ -16,7 +17,7 @@ export default function AdminSettings({ user, onLogout }: { user: User; onLogout
   const [saved, setSaved] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/admin/rbac/discounts', { credentials: 'include' })
+    fetch(`${API_BASE}/admin/rbac/discounts`, { credentials: 'include' })
       .then(r => r.json())
       .then(json => { if (json.success) setDiscounts(json.data); })
       .catch(() => {})
@@ -26,7 +27,7 @@ export default function AdminSettings({ user, onLogout }: { user: User; onLogout
   const updateDiscount = async (key: string, rate: number) => {
     setSaving(key);
     try {
-      const res = await fetch(`/api/admin/rbac/discounts/${key}`, {
+      const res = await fetch(`${API_BASE}/admin/rbac/discounts/${key}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rate }),
@@ -44,7 +45,7 @@ export default function AdminSettings({ user, onLogout }: { user: User; onLogout
   const toggleActive = async (key: string, isActive: boolean) => {
     setSaving(key);
     try {
-      const res = await fetch(`/api/admin/rbac/discounts/${key}`, {
+      const res = await fetch(`${API_BASE}/admin/rbac/discounts/${key}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive }),

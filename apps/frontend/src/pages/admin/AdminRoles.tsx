@@ -8,6 +8,7 @@ import { Modal } from '../../components/ui/Modal';
 import { Toggle } from '../../components/ui/Toggle';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import type { User } from '../../types';
+import { API_BASE } from '../../lib/api';
 
 interface Permission { id: string; key: string; module: string; action: string; description: string | null; }
 interface Role { id: string; name: string; slug: string; description: string | null; isSystem: boolean; isActive: boolean; permissions: { permission: Permission }[]; _count: { userRoles: number }; }
@@ -27,13 +28,13 @@ export default function AdminRoles({ user, onLogout }: { user: User; onLogout: (
   const [deleteTarget, setDeleteTarget] = useState<Role | null>(null);
 
   const fetchRoles = async () => {
-    const res = await fetch('/api/admin/rbac/roles', { credentials: 'include' });
+    const res = await fetch(`${API_BASE}/admin/rbac/roles`, { credentials: 'include' });
     const json = await res.json();
     if (json.success) setRoles(json.data);
   };
 
   const fetchPermissions = async () => {
-    const res = await fetch('/api/admin/rbac/permissions', { credentials: 'include' });
+    const res = await fetch(`${API_BASE}/admin/rbac/permissions`, { credentials: 'include' });
     const json = await res.json();
     if (json.success) setPermissions(json.data);
   };
@@ -57,7 +58,7 @@ export default function AdminRoles({ user, onLogout }: { user: User; onLogout: (
     if (!selectedRole || isSuperAdmin) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/admin/rbac/roles/${selectedRole.id}/permissions`, {
+      const res = await fetch(`${API_BASE}/admin/rbac/roles/${selectedRole.id}/permissions`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ permissionKeys: selectedPerms }),
@@ -76,14 +77,14 @@ export default function AdminRoles({ user, onLogout }: { user: User; onLogout: (
     setSaving(true);
     try {
       if ((editRole as any).id) {
-        await fetch(`/api/admin/rbac/roles/${(editRole as any).id}`, {
+        await fetch(`${API_BASE}/admin/rbac/roles/${(editRole as any).id}`, {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: editRole.name, description: editRole.description, isActive: editRole.isActive }),
           credentials: 'include',
         });
       } else {
         const slug = editRole.name!.toLowerCase().replace(/\s+/g, '_');
-        await fetch('/api/admin/rbac/roles', {
+        await fetch(`${API_BASE}/admin/rbac/roles`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: editRole.name, slug, description: editRole.description }),
           credentials: 'include',
@@ -96,7 +97,7 @@ export default function AdminRoles({ user, onLogout }: { user: User; onLogout: (
 
   const deleteRole = async () => {
     if (!deleteTarget) return;
-    await fetch(`/api/admin/rbac/roles/${deleteTarget.id}`, { method: 'DELETE', credentials: 'include' });
+    await fetch(`${API_BASE}/admin/rbac/roles/${deleteTarget.id}`, { method: 'DELETE', credentials: 'include' });
     setDeleteTarget(null);
     fetchRoles();
   };
