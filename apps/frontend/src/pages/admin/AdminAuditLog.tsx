@@ -142,7 +142,7 @@ export default function AdminAuditLog({ user, onLogout }: AuditPageProps) {
           <div className="space-y-2">
             {filteredRecords.map(record => {
               const Icon = moduleIcons[record.module] ?? FileText;
-              const actionStyle = actionColors[record.action] ?? { bg: 'bg-surface-secondary', text: 'text-foreground-muted' };
+              const actionStyle = actionColors[record.action.toLowerCase()] ?? { bg: 'bg-surface-secondary', text: 'text-foreground-muted' };
               return (
                 <Card key={record.id} padding="sm" className="hover:bg-surface transition-colors">
                   <div className="flex items-center gap-4">

@@ -2,6 +2,8 @@ import type { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { LocationsService } from './service.js';
 import { parseErrors } from '../../middleware/error.js';
+import { createAuditLog } from '../audit/service.js';
+import { getClientIp, getUserAgent } from '../../lib/audit.js';
 
 const service = new LocationsService();
 
@@ -83,6 +85,18 @@ export async function createLocation(req: Request, res: Response, next: NextFunc
       return;
     }
     const location = await service.create(parsed.data);
+    if (req.user?.userId) {
+      createAuditLog({
+        actorUserId: req.user.userId,
+        action: 'create',
+        module: 'locations',
+        entityType: 'location',
+        entityId: location.id,
+        afterData: JSON.stringify(location),
+        ipAddress: getClientIp(req),
+        userAgent: getUserAgent(req),
+      }).catch(() => {});
+    }
     res.status(201).json({ success: true, message: 'Lokasi berhasil ditambahkan.', data: location });
   } catch (e) {
     next(e);
@@ -102,6 +116,19 @@ export async function updateLocation(req: Request, res: Response, next: NextFunc
       return;
     }
     const location = await service.update(req.params.id as string, parsed.data);
+    if (req.user?.userId) {
+      createAuditLog({
+        actorUserId: req.user.userId,
+        action: 'update',
+        module: 'locations',
+        entityType: 'location',
+        entityId: location.id,
+        beforeData: JSON.stringify(existing),
+        afterData: JSON.stringify(location),
+        ipAddress: getClientIp(req),
+        userAgent: getUserAgent(req),
+      }).catch(() => {});
+    }
     res.json({ success: true, message: 'Lokasi berhasil diperbarui.', data: location });
   } catch (e) {
     next(e);
@@ -116,6 +143,18 @@ export async function deleteLocation(req: Request, res: Response, next: NextFunc
       return;
     }
     await service.remove(req.params.id as string);
+    if (req.user?.userId) {
+      createAuditLog({
+        actorUserId: req.user.userId,
+        action: 'delete',
+        module: 'locations',
+        entityType: 'location',
+        entityId: req.params.id as string,
+        beforeData: JSON.stringify(existing),
+        ipAddress: getClientIp(req),
+        userAgent: getUserAgent(req),
+      }).catch(() => {});
+    }
     res.json({ success: true, message: 'Lokasi berhasil dihapus.' });
   } catch (e) {
     next(e);
@@ -135,6 +174,19 @@ export async function setLocationStatus(req: Request, res: Response, next: NextF
       return;
     }
     const location = await service.setActive(req.params.id as string, parsed.data.isActive);
+    if (req.user?.userId) {
+      createAuditLog({
+        actorUserId: req.user.userId,
+        action: 'update',
+        module: 'locations',
+        entityType: 'location',
+        entityId: location.id,
+        beforeData: JSON.stringify(existing),
+        afterData: JSON.stringify(location),
+        ipAddress: getClientIp(req),
+        userAgent: getUserAgent(req),
+      }).catch(() => {});
+    }
     res.json({ success: true, message: 'Status lokasi berhasil diperbarui.', data: location });
   } catch (e) {
     next(e);
@@ -149,6 +201,19 @@ export async function setLocationPrimary(req: Request, res: Response, next: Next
       return;
     }
     const location = await service.setPrimary(req.params.id as string);
+    if (req.user?.userId) {
+      createAuditLog({
+        actorUserId: req.user.userId,
+        action: 'update',
+        module: 'locations',
+        entityType: 'location',
+        entityId: location.id,
+        beforeData: JSON.stringify(existing),
+        afterData: JSON.stringify(location),
+        ipAddress: getClientIp(req),
+        userAgent: getUserAgent(req),
+      }).catch(() => {});
+    }
     res.json({ success: true, message: 'Lokasi utama berhasil diperbarui.', data: location });
   } catch (e) {
     next(e);

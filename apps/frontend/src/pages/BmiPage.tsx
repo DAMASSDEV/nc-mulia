@@ -184,23 +184,28 @@ export default function BmiPage({ user }: BmiPageProps) {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
                 {recommendedProducts.slice(0, 4).map(product => (
-                  <div key={product.id} className="flex items-center gap-3 p-3 bg-surface-secondary rounded-xl border border-border">
+                  <Link
+                    key={product.id}
+                    to={`/produk-herbalife?bmiCategory=${encodeURIComponent(result.category)}&search=${encodeURIComponent(product.name)}`}
+                    className="flex items-center gap-3 p-3 bg-surface-secondary hover:bg-emerald-50/50 hover:border-emerald-300 rounded-xl border border-border transition-all group"
+                  >
                     <img
                       src={getProductImage(product.name)}
                       alt={product.name}
-                      className="w-10 h-10 object-cover rounded-lg flex-shrink-0"
+                      className="w-10 h-10 object-cover rounded-lg flex-shrink-0 group-hover:scale-105 transition-transform"
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm text-foreground truncate">{product.name}</div>
+                      <div className="font-medium text-sm text-foreground truncate group-hover:text-emerald-700 transition-colors">{product.name}</div>
                       <div className="text-xs text-brand-primary font-semibold">{formatPrice(product.basePrice)}</div>
                     </div>
-                  </div>
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition-colors" />
+                  </Link>
                 ))}
               </div>
 
-              <Link to="/produk-herbalife">
+              <Link to={`/produk-herbalife?bmiCategory=${encodeURIComponent(result.category)}`}>
                 <Button variant="secondary" size="sm" icon={<ArrowRight className="w-4 h-4" />} iconPosition="right" className="w-full justify-center">
-                  Lihat Semua Produk
+                  Lihat Semua Produk Rekomendasi ({result.category})
                 </Button>
               </Link>
             </Card>

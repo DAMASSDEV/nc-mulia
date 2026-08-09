@@ -14,20 +14,25 @@ export interface AuditLogInput {
 }
 
 export async function createAuditLog(input: AuditLogInput) {
-  return prisma.adminAuditLog.create({
-    data: {
-      actorUserId: input.actorUserId,
-      action: input.action,
-      module: input.module,
-      entityType: input.entityType,
-      entityId: input.entityId,
-      beforeData: input.beforeData !== undefined ? (typeof input.beforeData === 'string' ? input.beforeData : JSON.stringify(input.beforeData)) : null,
-      afterData: input.afterData !== undefined ? (typeof input.afterData === 'string' ? input.afterData : JSON.stringify(input.afterData)) : null,
-      metadata: input.metadata !== undefined ? (typeof input.metadata === 'string' ? input.metadata : JSON.stringify(input.metadata)) : null,
-      ipAddress: input.ipAddress,
-      userAgent: input.userAgent,
-    },
-  });
+  try {
+    return await prisma.adminAuditLog.create({
+      data: {
+        actorUserId: input.actorUserId,
+        action: input.action,
+        module: input.module,
+        entityType: input.entityType,
+        entityId: input.entityId,
+        beforeData: input.beforeData !== undefined ? (typeof input.beforeData === 'string' ? input.beforeData : JSON.stringify(input.beforeData)) : null,
+        afterData: input.afterData !== undefined ? (typeof input.afterData === 'string' ? input.afterData : JSON.stringify(input.afterData)) : null,
+        metadata: input.metadata !== undefined ? (typeof input.metadata === 'string' ? input.metadata : JSON.stringify(input.metadata)) : null,
+        ipAddress: input.ipAddress,
+        userAgent: input.userAgent,
+      },
+    });
+  } catch (err) {
+    console.error('Audit Log Error:', err);
+    return null;
+  }
 }
 
 export async function listAuditLogs(query: {

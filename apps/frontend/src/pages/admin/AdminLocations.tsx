@@ -260,15 +260,21 @@ export default function AdminLocations({ user, onLogout }: { user: User; onLogou
   const handleDeleteConfirm = async () => {
     if (!deleteConfirmId) return;
     setDeleting(deleteConfirmId);
+    setError('');
     try {
       const res = await fetch(`/api/admin/locations/${deleteConfirmId}`, { method: 'DELETE', credentials: 'include' });
       const d = await res.json();
       if (d.success) {
         setLocations(prev => prev.filter(l => l.id !== deleteConfirmId));
+        loadLocations();
+        setDeleteConfirmId(null);
+      } else {
+        setError(d.message || 'Gagal menghapus lokasi.');
       }
+    } catch {
+      setError('Terjadi kesalahan saat menghapus lokasi.');
     } finally {
       setDeleting(null);
-      setDeleteConfirmId(null);
     }
   };
 
@@ -370,7 +376,7 @@ export default function AdminLocations({ user, onLogout }: { user: User; onLogou
                         variant="ghost"
                         size="sm"
                         icon={deleting === loc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                        onClick={() => setDeleteConfirmId(loc.id)}
+                        onClick={() => { setError(''); setDeleteConfirmId(loc.id); }}
                         className="text-danger hover:text-danger"
                         disabled={deleting === loc.id}
                       />
@@ -536,7 +542,7 @@ export default function AdminLocations({ user, onLogout }: { user: User; onLogou
       )}
 
       {/* Delete Confirmation */}
-      <Modal isOpen={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} title="Konfirmasi Hapus" size="sm">
+      <Modal isOpen={!!deleteConfirmId} onClose={() => { setError(''); setDeleteConfirmId(null); }} title="Konfirmasi Hapus" size="sm">
         <div className="space-y-4">
           <p className="text-sm text-foreground-muted leading-relaxed">
             Apakah Anda yakin ingin menghapus lokasi <span className="font-semibold text-foreground">
@@ -544,10 +550,13 @@ export default function AdminLocations({ user, onLogout }: { user: User; onLogou
             </span>?
             Tindakan ini tidak dapat dibatalkan.
           </p>
+          {error && (
+            <p className="text-xs text-danger bg-danger-soft px-3 py-2 rounded-lg">{error}</p>
+          )}
           <div className="flex items-center justify-end gap-3 pt-2">
-            <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmId(null)}>Batal</Button>
+            <Button variant="ghost" size="sm" onClick={() => { setError(''); setDeleteConfirmId(null); }}>Batal</Button>
             <Button variant="danger" size="sm" onClick={handleDeleteConfirm} disabled={!!deleting}>
-              {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              {deleting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
               Hapus
             </Button>
           </div>

@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { productsApi } from '../lib/api';
 import { useCart } from '../contexts/CartContext';
 import type { Product, User } from '../lib/api';
 import { herbalifeProducts } from '../data/herbalife-products';
 import { getProductImage } from '../lib/productImages';
+import { getRecommendation } from '../lib/recommendations';
+import type { BmiCategory } from '../types';
 
 interface ProductsPageProps { user?: User | null; }
 
@@ -35,6 +38,10 @@ function formatPrice(n: number | undefined | null) {
 }
 
 export default function ProductsPage({ user }: ProductsPageProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const bmiCategoryParam = searchParams.get('bmiCategory') as BmiCategory | null;
+  const searchParam = searchParams.get('search');
+
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
   const [rawProducts, setRawProducts] = useState<Product[]>([]);
@@ -42,6 +49,14 @@ export default function ProductsPage({ user }: ProductsPageProps) {
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const [selectedDetailProduct, setSelectedDetailProduct] = useState<Product | null>(null);
   const { addToCart, isInCart, isLoading: cartLoading } = useCart();
+
+  const [showOnlyRecommended, setShowOnlyRecommended] = useState(true);
+
+  useEffect(() => {
+    if (searchParam) {
+      setSearch(searchParam);
+    }
+  }, [searchParam]);
 
   useEffect(() => {
     setLoading(true);
@@ -63,10 +78,36 @@ export default function ProductsPage({ user }: ProductsPageProps) {
     });
   }, []);
 
-  const displayedProducts = (rawProducts.length > 0 ? rawProducts : herbalifeProducts.map(mapStaticProduct))
+  const recommendation = bmiCategoryParam ? getRecommendation(bmiCategoryParam) : null;
+  const recProductIds = new Set(recommendation?.productIds ?? []);
+  const recProductNames = new Set(
+    herbalifeProducts
+      .filter(hp => recProductIds.has(hp.id))
+      .map(hp => hp.name.toLowerCase().trim())
+  );
+
+  const isRecommendedProduct = (p: Product) => {
+    if (recProductIds.has(p.id)) return true;
+    if (p.name && recProductNames.has(p.name.toLowerCase().trim())) return true;
+    return false;
+  };
+
+  const baseProducts = (rawProducts.length > 0 ? rawProducts : herbalifeProducts.map(mapStaticProduct))
     .map(p => ({ ...p, isAvailable: true }))
     .filter(p => category === 'All' || p.category === category)
     .filter(p => search === '' || p.name.toLowerCase().includes(search.toLowerCase()));
+
+  const displayedProducts = (bmiCategoryParam && showOnlyRecommended)
+    ? baseProducts.filter(p => isRecommendedProduct(p))
+    : recProductIds.size > 0
+      ? [...baseProducts].sort((a, b) => {
+          const aRec = isRecommendedProduct(a);
+          const bRec = isRecommendedProduct(b);
+          if (aRec && !bRec) return -1;
+          if (!aRec && bRec) return 1;
+          return 0;
+        })
+      : baseProducts;
 
   const handleAdd = (product: Product) => {
     const final = product.pricing?.finalPrice ?? product.basePrice;
@@ -87,6 +128,43 @@ export default function ProductsPage({ user }: ProductsPageProps) {
           <div className="text-sm text-emerald-600">{displayedProducts.length} Produk</div>
         </div>
       </div>
+
+      {bmiCategoryParam && (
+        <div className="mb-8 p-5 bg-gradient-to-r from-emerald-600 to-teal-700 text-white rounded-3xl shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl flex-shrink-0">
+              ✨
+            </div>
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wider text-emerald-100">Rekomendasi Hasil BMI</div>
+              <h2 className="text-xl font-bold mt-0.5">Produk Pilihan Kategori: {bmiCategoryParam}</h2>
+              <p className="text-xs text-emerald-100 mt-1 max-w-2xl leading-relaxed">
+                {recommendation?.description ?? 'Produk yang disesuaikan khusus untuk mendukung nutrisi ideal Anda.'}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 self-start md:self-auto flex-shrink-0">
+            <button
+              onClick={() => setShowOnlyRecommended(prev => !prev)}
+              className="bg-white text-emerald-800 hover:bg-emerald-50 text-xs font-bold px-4 py-2.5 rounded-xl shadow transition-all"
+            >
+              {showOnlyRecommended ? 'Tampilkan Seluruh Katalog' : 'Filter Rekomendasi Saja'}
+            </button>
+            <button
+              onClick={() => {
+                searchParams.delete('bmiCategory');
+                searchParams.delete('search');
+                setSearchParams(searchParams);
+                setSearch('');
+              }}
+              className="bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-3 py-2.5 rounded-xl border border-white/20 transition-all"
+              title="Reset Filter"
+            >
+              ✕ Reset
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col md:flex-row gap-4 mb-8 sticky top-20 z-40 bg-white py-4 border-b">
         <input
@@ -116,6 +194,7 @@ export default function ProductsPage({ user }: ProductsPageProps) {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {displayedProducts.map(product => {
+            const isRecommended = isRecommendedProduct(product);
             const inCart = isInCart(product.id);
             const justAdded = addedIds.has(product.id);
             const pricing = product.pricing ?? { discountPercentage: 0, discountAmount: 0, finalPrice: product.basePrice, membershipApplied: false };
@@ -123,7 +202,7 @@ export default function ProductsPage({ user }: ProductsPageProps) {
             const basePrice = product.basePrice;
             const finalPrice = pricing.finalPrice;
             return (
-              <div key={product.id} className="bg-white rounded-3xl overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow border border-slate-200/80 group">
+              <div key={product.id} className={`bg-white rounded-3xl overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-all border ${isRecommended ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200/80'} group`}>
                 <div className="relative cursor-pointer" onClick={() => setSelectedDetailProduct(product)}>
                   {product.imageUrl ? (
                     <div className="w-full h-60 bg-[#F5FAF7] flex items-center justify-center overflow-hidden border-b border-slate-200 shadow-sm">
@@ -137,7 +216,12 @@ export default function ProductsPage({ user }: ProductsPageProps) {
                   <div className="absolute top-4 right-4 bg-white px-3 py-1 text-xs font-semibold tracking-wider rounded-full shadow">
                     {product.category}
                   </div>
-                  {hasDiscount && (
+                  {isRecommended && (
+                    <div className="absolute top-4 left-4 bg-emerald-600 text-white px-3 py-1 text-xs font-bold rounded-full shadow-md z-10 flex items-center gap-1">
+                      ⭐ Rekomendasi BMI
+                    </div>
+                  )}
+                  {hasDiscount && !isRecommended && (
                     <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 text-xs font-bold rounded-full">
                       -{pricing.discountPercentage}%
                     </div>

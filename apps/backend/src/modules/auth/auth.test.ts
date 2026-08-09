@@ -442,7 +442,7 @@ describe('Auth Controller', () => {
 
       await logout(req, res, next);
 
-      expect(clearCookie).toHaveBeenCalledWith('accessToken');
+      expect(clearCookie).toHaveBeenCalledWith('accessToken', expect.anything());
       expect(json).toHaveBeenCalledWith(expect.objectContaining({ success: true, message: 'Logout berhasil.' }));
     });
   });

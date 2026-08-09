@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { AuthService } from './service.js';
 import { parseErrors } from '../../middleware/error.js';
 import { env } from '../../config/env.js';
+import { createAuditLog } from '../audit/service.js';
+import { getClientIp, getUserAgent } from '../../lib/audit.js';
 
 const authService = new AuthService();
 
@@ -47,14 +49,36 @@ export async function login(req: Request, res: Response, next: NextFunction) {
       sameSite: isProd ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
+    if (result.user?.id) {
+      createAuditLog({
+        actorUserId: result.user.id,
+        action: 'login',
+        module: 'auth',
+        entityType: 'user',
+        entityId: result.user.id,
+        ipAddress: getClientIp(req),
+        userAgent: getUserAgent(req),
+      }).catch(() => {});
+    }
     res.json({ success: true, message: 'Login berhasil.', data: result.user });
   } catch (e) {
     next(e);
   }
 }
 
-export async function logout(_req: Request, res: Response, _next: NextFunction) {
+export async function logout(req: Request, res: Response, _next: NextFunction) {
   const isProd = env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+  if (req.user?.userId) {
+    createAuditLog({
+      actorUserId: req.user.userId,
+      action: 'logout',
+      module: 'auth',
+      entityType: 'user',
+      entityId: req.user.userId,
+      ipAddress: getClientIp(req),
+      userAgent: getUserAgent(req),
+    }).catch(() => {});
+  }
   res.clearCookie('accessToken', {
     httpOnly: true,
     secure: isProd,

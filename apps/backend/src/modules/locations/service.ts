@@ -191,6 +191,12 @@ export class LocationsService {
   }
 
   async remove(id: string): Promise<void> {
+    const target = inMemoryLocations.find(l => l.id === id);
+    if (!target) throw new Error('Lokasi tidak ditemukan.');
+    const wasPrimary = target.isPrimary;
     inMemoryLocations = inMemoryLocations.filter(l => l.id !== id);
+    if (wasPrimary && inMemoryLocations.length > 0) {
+      inMemoryLocations[0].isPrimary = true;
+    }
   }
 }
