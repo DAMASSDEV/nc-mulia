@@ -58,6 +58,10 @@ export default function BmiPage({ user }: BmiPageProps) {
     try {
       const bmiResult = calculateBmi(w, h);
       setResult(bmiResult);
+      try {
+        localStorage.setItem('nc_user_bmi_category', bmiResult.category);
+        localStorage.setItem('nc_user_bmi_value', String(bmiResult.value));
+      } catch {}
 
       if (user) {
         await bmiApi.calculate({ heightCm: h, weightKg: w });
@@ -71,7 +75,7 @@ export default function BmiPage({ user }: BmiPageProps) {
   };
 
   const recommendedProducts = result
-    ? herbalifeProducts.filter(p => getRecommendation(result.category).productIds.includes(p.id))
+    ? herbalifeProducts.filter(p => (getRecommendation(result.category)?.productIds ?? []).includes(p.id))
     : [];
 
   const catCfg = result ? categoryConfig[result.category] : null;
@@ -179,7 +183,7 @@ export default function BmiPage({ user }: BmiPageProps) {
             <Card>
               <h3 className="text-base font-semibold text-foreground mb-1">Rekomendasi Produk</h3>
               <p className="text-xs text-foreground-muted mb-4">
-                Produk Herbalife yang cocok untuk kategori <strong>{result.category}</strong>. {getRecommendation(result.category).disclaimer}
+                Produk Herbalife yang cocok untuk kategori <strong>{result.category}</strong>. {getRecommendation(result.category)?.disclaimer}
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">

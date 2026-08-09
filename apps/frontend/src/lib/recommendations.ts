@@ -27,6 +27,18 @@ const RECOMMENDATIONS: Record<BmiCategory, Recommendation> = {
   },
 };
 
-export function getRecommendation(category: BmiCategory): Recommendation {
-  return RECOMMENDATIONS[category];
+export function normalizeBmiCategory(cat?: string | null): BmiCategory | null {
+  if (!cat) return null;
+  const upper = cat.trim().toUpperCase();
+  if (upper.includes('KURUS') || upper.includes('UNDERWEIGHT')) return 'Kurus';
+  if (upper.includes('NORMAL')) return 'Normal';
+  if (upper.includes('KELEBIHAN') || upper.includes('BERAT') || upper.includes('OVERWEIGHT')) return 'Kelebihan Berat';
+  if (upper.includes('OBES') || upper.includes('OBESITY')) return 'Obesitas';
+  return null;
+}
+
+export function getRecommendation(category?: string | null): Recommendation | null {
+  const normalized = normalizeBmiCategory(category);
+  if (!normalized) return null;
+  return RECOMMENDATIONS[normalized];
 }

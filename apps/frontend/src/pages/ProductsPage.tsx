@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { productsApi } from '../lib/api';
+import { useSearchParams, Link } from 'react-router-dom';
+import { productsApi, bmiApi } from '../lib/api';
 import { useCart } from '../contexts/CartContext';
 import type { Product, User } from '../lib/api';
 import { herbalifeProducts } from '../data/herbalife-products';
 import { getProductImage } from '../lib/productImages';
-import { getRecommendation } from '../lib/recommendations';
+import { getRecommendation, normalizeBmiCategory } from '../lib/recommendations';
 import type { BmiCategory } from '../types';
 
 interface ProductsPageProps { user?: User | null; }
@@ -51,12 +51,43 @@ export default function ProductsPage({ user }: ProductsPageProps) {
   const { addToCart, isInCart, isLoading: cartLoading } = useCart();
 
   const [showOnlyRecommended, setShowOnlyRecommended] = useState(true);
+  const [dismissedRecommendation, setDismissedRecommendation] = useState(false);
+
+  const [savedBmi, setSavedBmi] = useState<{ category: string; value?: string | number } | null>(() => {
+    try {
+      const cat = localStorage.getItem('nc_user_bmi_category');
+      const val = localStorage.getItem('nc_user_bmi_value');
+      if (cat) return { category: cat, value: val || undefined };
+    } catch {}
+    return null;
+  });
 
   useEffect(() => {
     if (searchParam) {
       setSearch(searchParam);
     }
   }, [searchParam]);
+
+  useEffect(() => {
+    if (user) {
+      bmiApi.history().then(res => {
+        const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+        if (list.length > 0) {
+          const latest = list[0];
+          const cat = latest.bmiCategory || (latest as any).category;
+          if (cat) {
+            const norm = normalizeBmiCategory(cat) || cat;
+            const val = latest.bmiValue ?? (latest as any).bmi;
+            setSavedBmi({ category: norm, value: val });
+            try {
+              localStorage.setItem('nc_user_bmi_category', norm);
+              if (val) localStorage.setItem('nc_user_bmi_value', String(val));
+            } catch {}
+          }
+        }
+      }).catch(() => {});
+    }
+  }, [user]);
 
   useEffect(() => {
     setLoading(true);
@@ -78,7 +109,11 @@ export default function ProductsPage({ user }: ProductsPageProps) {
     });
   }, []);
 
-  const recommendation = bmiCategoryParam ? getRecommendation(bmiCategoryParam) : null;
+  const activeCategoryName = !dismissedRecommendation
+    ? (normalizeBmiCategory(bmiCategoryParam) || normalizeBmiCategory(savedBmi?.category))
+    : null;
+
+  const recommendation = activeCategoryName ? getRecommendation(activeCategoryName) : null;
   const recProductIds = new Set(recommendation?.productIds ?? []);
   const recProductNames = new Set(
     herbalifeProducts
@@ -87,6 +122,7 @@ export default function ProductsPage({ user }: ProductsPageProps) {
   );
 
   const isRecommendedProduct = (p: Product) => {
+    if (!activeCategoryName) return false;
     if (recProductIds.has(p.id)) return true;
     if (p.name && recProductNames.has(p.name.toLowerCase().trim())) return true;
     return false;
@@ -97,7 +133,7 @@ export default function ProductsPage({ user }: ProductsPageProps) {
     .filter(p => category === 'All' || p.category === category)
     .filter(p => search === '' || p.name.toLowerCase().includes(search.toLowerCase()));
 
-  const displayedProducts = (bmiCategoryParam && showOnlyRecommended)
+  const displayedProducts = (activeCategoryName && showOnlyRecommended)
     ? baseProducts.filter(p => isRecommendedProduct(p))
     : recProductIds.size > 0
       ? [...baseProducts].sort((a, b) => {
@@ -129,15 +165,24 @@ export default function ProductsPage({ user }: ProductsPageProps) {
         </div>
       </div>
 
-      {bmiCategoryParam && (
-        <div className="mb-8 p-5 bg-gradient-to-r from-emerald-600 to-teal-700 text-white rounded-3xl shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+      {activeCategoryName ? (
+        <div className="mb-8 p-6 bg-gradient-to-r from-emerald-600 to-teal-700 text-white rounded-3xl shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4 border border-emerald-500/30">
+          <div className="flex items-start md:items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl flex-shrink-0">
               ✨
             </div>
             <div>
-              <div className="text-xs font-semibold uppercase tracking-wider text-emerald-100">Rekomendasi Hasil BMI</div>
-              <h2 className="text-xl font-bold mt-0.5">Produk Pilihan Kategori: {bmiCategoryParam}</h2>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider bg-white/20 px-2.5 py-0.5 rounded-full text-white">
+                  Rekomendasi Berdasarkan Hasil BMI
+                </span>
+                {savedBmi?.value && (
+                  <span className="text-xs font-medium text-emerald-100">
+                    (Skor BMI: {savedBmi.value})
+                  </span>
+                )}
+              </div>
+              <h2 className="text-2xl font-bold mt-1 text-white">Produk Pilihan: Kategori {activeCategoryName}</h2>
               <p className="text-xs text-emerald-100 mt-1 max-w-2xl leading-relaxed">
                 {recommendation?.description ?? 'Produk yang disesuaikan khusus untuk mendukung nutrisi ideal Anda.'}
               </p>
@@ -148,21 +193,57 @@ export default function ProductsPage({ user }: ProductsPageProps) {
               onClick={() => setShowOnlyRecommended(prev => !prev)}
               className="bg-white text-emerald-800 hover:bg-emerald-50 text-xs font-bold px-4 py-2.5 rounded-xl shadow transition-all"
             >
-              {showOnlyRecommended ? 'Tampilkan Seluruh Katalog' : 'Filter Rekomendasi Saja'}
+              {showOnlyRecommended ? 'Lihat Semua Katalog' : 'Filter Rekomendasi Saja'}
             </button>
+            <Link
+              to="/bmi"
+              className="bg-emerald-800/60 hover:bg-emerald-800 text-white text-xs font-bold px-3 py-2.5 rounded-xl border border-white/20 transition-all flex items-center gap-1"
+            >
+              🔄 Hitung Ulang BMI
+            </Link>
             <button
               onClick={() => {
+                setDismissedRecommendation(true);
                 searchParams.delete('bmiCategory');
                 searchParams.delete('search');
                 setSearchParams(searchParams);
-                setSearch('');
               }}
               className="bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-3 py-2.5 rounded-xl border border-white/20 transition-all"
-              title="Reset Filter"
+              title="Tutup Filter Rekomendasi"
             >
-              ✕ Reset
+              ✕ Tutup
             </button>
           </div>
+        </div>
+      ) : savedBmi?.category ? (
+        <div className="mb-8 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-sm text-emerald-900">
+            <span>✨ Terdeteksi hasil BMI Anda sebelumnya: <strong>{savedBmi.category}</strong> {savedBmi.value ? `(BMI: ${savedBmi.value})` : ''}</span>
+          </div>
+          <button
+            onClick={() => setDismissedRecommendation(false)}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm"
+          >
+            Aktifkan Rekomendasi BMI
+          </button>
+        </div>
+      ) : (
+        <div className="mb-8 p-5 bg-gradient-to-r from-slate-900 to-emerald-950 text-white rounded-3xl shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-emerald-500/20">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-xl flex-shrink-0">
+              💡
+            </div>
+            <div>
+              <h3 className="font-semibold text-sm text-white">Ingin rekomendasi produk yang paling sesuai?</h3>
+              <p className="text-xs text-slate-300 mt-0.5">Hitung Kalkulator BMI Anda untuk mendapatkan saran produk yang dipersonalisasi khusus tubuh Anda.</p>
+            </div>
+          </div>
+          <Link
+            to="/bmi"
+            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-xl shadow transition-all self-start sm:self-auto flex-shrink-0 flex items-center gap-1.5"
+          >
+            👉 Hitung BMI Sekarang
+          </Link>
         </div>
       )}
 
